@@ -27,15 +27,13 @@ import diffusers
 import torch
 import torch.distributed as dist
 import transformers
-from accelerate.utils import set_seed
 from diffusers.image_processor import VaeImageProcessor
 from diffusers import (
     UniPCMultistepScheduler,
-    FlowMatchEulerDiscreteScheduler,
     WanPipeline,
 )
 from diffusers.optimization import get_scheduler
-from diffusers.training_utils import cast_training_params, free_memory
+from diffusers.training_utils import cast_training_params, free_memory, set_seed
 from diffusers.utils import check_min_version, is_wandb_available, export_to_video
 from torch.amp import GradScaler
 from tqdm.auto import tqdm
@@ -248,6 +246,7 @@ def main(args: Args):
     sp_group_index, sp_group_local_rank, dp_rank, dp_size = (
         setup_sequence_parallel_group(args.parallel_config.sp_size)
     )
+    set_seed(args.seed + dp_rank)
 
     # Load dataset
     train_dataloader, sampler = load_easyvideo_dataset(
@@ -269,7 +268,7 @@ def main(args: Args):
             notes=args.report_to.wandb_notes,
             sync_tensorboard=True,
         )
-        wandb.config.update(args)
+        wandb.config.update(OmegaConf.to_container(args, resolve=True))
 
     # Scheduler.
     overrode_max_train_steps = False
@@ -333,7 +332,7 @@ def main(args: Args):
     first_epoch = global_step // num_update_steps_per_epoch
 
     progress_bar = tqdm(
-        range(0, args.max_train_steps),
+        range(0, args.training_config.max_train_steps),
         initial=initial_global_step,
         desc="Steps",
         # Only show the progress bar once on each machine.
@@ -341,7 +340,7 @@ def main(args: Args):
     )
 
     sample_neg_prompt = "Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards"
-    uncond_text = [sample_neg_prompt] * args.train_batch_size
+    uncond_text = [sample_neg_prompt] * args.training_config.train_batch_size
     uncond_context = encode_prompt(
         tokenizer=tokenizer,
         text_encoder=text_encoder,
@@ -353,7 +352,7 @@ def main(args: Args):
     for epoch in range(first_epoch, args.training_config.num_train_epochs):
         train_dataloader.sampler.set_epoch(epoch)
 
-        if args.is_gan_distill:
+        if args.step_distill_config.is_gan_distill:
             discriminator.train()
         transformer.train()
 
@@ -364,8 +363,8 @@ def main(args: Args):
                 # Forward & backward
                 # Get data samplex
                 videos = batch["videos"]
+                videos = videos.to(device, dtype=vae.dtype)
                 videos = vae.encode(videos)
-
                 # Get latents (z_0)
                 model_input = videos.to(
                     memory_format=torch.contiguous_format, dtype=weight_dtype
@@ -395,7 +394,7 @@ def main(args: Args):
             prob = torch.ones(num_student_steps) / (num_student_steps)
             start_idx = torch.multinomial(prob, 1)
             start_timestep = student_noise_scheduler.timesteps[start_idx]
-            if args.is_gan_distill:
+            if args.step_distill_config.is_gan_distill:
                 if start_idx + 1 < len(student_noise_scheduler.timesteps):
                     end_timestep = student_noise_scheduler.timesteps[start_idx + 1]
                 else:
@@ -478,7 +477,7 @@ def main(args: Args):
                     rec_loss = args.step_distill_config.distance_weight * torch.sum(
                         torch.pow((latents_student - latents_teacher), 2)
                     )
-                    if step >= args.disc_start:
+                    if step >= args.step_distill_config.disc_start:
                         score_student = discriminator(
                             hidden_states=latents_student,
                             timestep=end_timesteps,
@@ -542,7 +541,8 @@ def main(args: Args):
 
             scaler.update()
             lr_scheduler.step()
-            disc_optimizer.zero_grad(set_to_none=True)
+            if args.step_distill_config.is_gan_distill:
+                disc_optimizer.zero_grad(set_to_none=True)
             optimizer.zero_grad(set_to_none=True)
             progress_bar.update(1)
             global_step += 1

@@ -6,3 +6,4 @@ logs
 *.ckpt
 *.safetensors
 **/__pycache__/**
+wandb/

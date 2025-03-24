@@ -1,14 +1,14 @@
 import json
-
+import torch
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 
 from spark_wan.datasets.easyvideo import EasyVideoDataset
 
 def easy_collate_fn(examples):
-    videos = [example["instance_video"] for example in examples]
+    videos = [example["instance_video"].unsqueeze(0) for example in examples]
     prompts = [example["instance_prompt"] for example in examples]
-
+    videos = torch.cat(videos, dim=0)
     return {
         "videos": videos,
         "prompts": prompts,

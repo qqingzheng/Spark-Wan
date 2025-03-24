@@ -6,7 +6,7 @@ class AutoencoderKLWan(AutoencoderKLWanDiffusers):
         super().__init__(*args, **kwargs)
 
     def _normalize_latents(
-        latents: torch.Tensor, latents_mean: torch.Tensor, latents_std: torch.Tensor
+        self, latents: torch.Tensor, latents_mean: torch.Tensor, latents_std: torch.Tensor
     ) -> torch.Tensor:
         latents_mean = latents_mean.view(1, -1, 1, 1, 1).to(device=latents.device)
         latents_std = latents_std.view(1, -1, 1, 1, 1).to(device=latents.device)
