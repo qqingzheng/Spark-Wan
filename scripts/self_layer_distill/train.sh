@@ -45,4 +45,4 @@ torchrun \
   --node_rank $NODE_RANK \
   --nnodes $NNODES \
   train_self_layer_distill.py \
-  --config scripts/self_layer_distill/scheduler_step_50.yaml
+  --config scripts/self_layer_distill/scheduler_step_50_zero_2000.yaml

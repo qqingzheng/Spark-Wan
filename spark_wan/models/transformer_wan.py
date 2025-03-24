@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.distributed as dist
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.loaders import FromOriginalModelMixin, PeftAdapterMixin
 from diffusers.models.attention import FeedForward
@@ -75,7 +76,7 @@ class WanAttnProcessor2_0:
         # Pad head
         sequence_parallel_group = get_sequence_parallel_group()
         if sequence_parallel_group:
-            sequence_parallel_group_size = get_world_size(sequence_parallel_group)
+            sequence_parallel_group_size = dist.get_world_size(sequence_parallel_group)
             if attn.heads % sequence_parallel_group_size != 0:
                 raise ValueError(
                     f"Heads {attn.heads} must be divisible by the number of GPUs in sequence parallel group {sequence_parallel_group_size}"
@@ -688,7 +689,7 @@ class WanTransformer3DModel(
 
         sequence_parallel_group = get_sequence_parallel_group()
         if sequence_parallel_group:
-            sequence_parallel_group_size = get_world_size(sequence_parallel_group)
+            sequence_parallel_group_size = dist.get_world_size(sequence_parallel_group)
 
         if (
             sequence_parallel_group

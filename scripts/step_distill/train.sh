@@ -45,4 +45,4 @@ torchrun \
   --node_rank $NODE_RANK \
   --nnodes $NNODES \
   train_step_distill.py \
-  --config scripts/step_distill/base.yaml
+  --config scripts/step_distill/14B_64_32.yaml

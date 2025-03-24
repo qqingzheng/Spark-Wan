@@ -173,7 +173,6 @@ def main(args: Args):
     guidance_scale_min = args.step_distill_config.guidance_scale_min
     guidance_scale_max = args.step_distill_config.guidance_scale_max
 
-    transformer = transformer.to(dtype=weight_dtype)
     # Make sure the trainable params are in float32.
     if args.training_config.mixed_precision == "fp16":
         # only upcast trainable parameters into fp32
@@ -575,6 +574,7 @@ def main(args: Args):
                     optimizer=optimizer,
                     dataloader=train_dataloader,
                     sampler=sampler,
+                    save_key_filter="lora",
                     scaler=scaler,
                     lr_scheduler=lr_scheduler,
                 )

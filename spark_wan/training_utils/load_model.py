@@ -59,11 +59,6 @@ def load_model(
         pretrained_model_name_or_path, subfolder="transformer"
     )
     transformer = replace_rmsnorm_with_fp32(transformer)
-    # For self layer distillation
-    if self_distill_layers_idx:
-        transformer.set_self_distill_layers(
-            [int(i) for i in self_distill_layers_idx.split(",")]
-        )
 
     # Load vae
     vae = AutoencoderKLWan.from_pretrained(
