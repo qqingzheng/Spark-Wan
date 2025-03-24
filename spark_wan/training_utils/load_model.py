@@ -15,6 +15,7 @@ from spark_wan.models.transformer_wan import WanTransformerBlock, WanTransformer
 from spark_wan.models.autoencoder_wan import AutoencoderKLWan
 from spark_wan.modules.fp32_norm import FP32RMSNorm
 
+
 def replace_rmsnorm_with_fp32(model):
     for name, module in model.named_modules():
         if isinstance(module, RMSNorm):
@@ -24,6 +25,7 @@ def replace_rmsnorm_with_fp32(model):
 
             module.forward = new_forward.__get__(module, module.__class__)
     return model
+
 
 def load_model(
     pretrained_model_name_or_path: str,
@@ -39,24 +41,22 @@ def load_model(
     lora_alpha: Optional[float] = None,
     lora_dropout: Optional[float] = None,
     lora_target_modules: Optional[List[str]] = None,
-    pretrained_lora_path: Optional[str] = None
+    pretrained_lora_path: Optional[str] = None,
+    find_unused_parameters: bool = False,
 ) -> Tuple[AutoTokenizer, UMT5EncoderModel, WanTransformer3DModel, AutoencoderKLWan]:
-    
+
     # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path,
-        subfolder="tokenizer"
+        pretrained_model_name_or_path, subfolder="tokenizer"
     )
     # Load text encoder
     text_encoder = UMT5EncoderModel.from_pretrained(
-        pretrained_model_name_or_path,
-        subfolder="text_encoder"
+        pretrained_model_name_or_path, subfolder="text_encoder"
     )
-    
+
     # Load transformer
     transformer = WanTransformer3DModel.from_pretrained(
-        pretrained_model_name_or_path,
-        subfolder="transformer"
+        pretrained_model_name_or_path, subfolder="transformer"
     )
     transformer = replace_rmsnorm_with_fp32(transformer)
     # For self layer distillation
@@ -67,8 +67,7 @@ def load_model(
 
     # Load vae
     vae = AutoencoderKLWan.from_pretrained(
-        pretrained_model_name_or_path,
-        subfolder="vae"
+        pretrained_model_name_or_path, subfolder="vae"
     )
 
     # Setup models
@@ -81,8 +80,8 @@ def load_model(
     if gradient_checkpointing:
         transformer.enable_gradient_checkpointing()
 
-    transformer.requires_grad_(False)
     if is_train_lora:
+        transformer.requires_grad_(False)
         transformer_lora_config = LoraConfig(
             r=lora_rank,
             target_modules=lora_target_modules,
@@ -96,10 +95,6 @@ def load_model(
             transformer = PeftModel.from_pretrained(
                 transformer, pretrained_lora_path, is_trainable=True
             )
-    else:
-        for i in transformer.self_distill_layers_idx:
-            transformer.blocks[i - 1].requires_grad_(True)
-            transformer.blocks[i + 1].requires_grad_(True)
 
     # Compile transformer
     if compile_transformer:
@@ -115,8 +110,12 @@ def load_model(
             weight_dtype=weight_dtype,
         )
     else:
-        transformer = transformer.to(device, dtype=weight_dtype)
-        transformer = DistributedDataParallel(transformer, device_ids=[device])
+        transformer = transformer.to(device)
+        transformer = DistributedDataParallel(
+            transformer,
+            device_ids=[device],
+            find_unused_parameters=find_unused_parameters,
+        )
 
     if fsdp_text_encoder:
         prepare_fsdp_model(

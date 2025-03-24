@@ -1,6 +1,5 @@
-
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 @dataclass
 class ReportTo:
@@ -83,7 +82,12 @@ class TrainingConfig:
     adam_weight_decay: float = field(default=1e-04)
     adam_epsilon: float = field(default=1e-08)
     max_grad_norm: float = field(default=1.0)
-
+    # ---- Flow Matching ----
+    weighting_scheme: str = field(default="logit_normal")
+    logit_mean: float = field(default=0.0)
+    logit_std: float = field(default=1.0)
+    mode_scale: float = field(default=1.29)
+    
 @dataclass
 class ParallelConfig:
     sp_size: int = field(default=1)
@@ -101,6 +105,13 @@ class StepDistillConfig:
     disc_weight: float = field(default=1.0)
     
 @dataclass
+class SelfLayerDistillConfig:
+    layers_idx: List[int] = field(default_factory=list)
+    scheduler: str = field(default="linear")
+    zero_step: int = field(default=1000)
+    scheduler_config: Dict[str, Any] = field(default_factory=dict)
+    
+@dataclass
 class Args:
     output_dir: str = field(default="wan-lora")
     seed: int = field(default=1234)
@@ -111,4 +122,5 @@ class Args:
     validation_config: ValidationConfig = field(default_factory=ValidationConfig)
     training_config: TrainingConfig = field(default_factory=TrainingConfig)
     step_distill_config: Optional[StepDistillConfig] = field(default=None)
+    self_layer_distill_config: Optional[SelfLayerDistillConfig] = field(default=None)
     logging_dir: str = field(default="logs")

@@ -615,22 +615,28 @@ class WanTransformer3DModel(
 
         self.alphas = nn.ParameterList(
             [
-                nn.Parameter(torch.tensor([1.0]))
+                nn.Parameter(torch.tensor([1.0],dtype=self.dtype, device=self.device), requires_grad=False)
                 for _ in range(len(self.self_distill_layers_idx))
             ]
         )
         
-    def step_alpha_decay(self, step: int):
-        if step < 1000:
+    def step_alpha_decay(self, step: int, zero_step: int = 1000, scheduler: str = "linear", **kwargs):
+        step = torch.tensor(step, dtype=self.dtype, device=self.device)
+        zero_step = torch.tensor(zero_step, dtype=self.dtype, device=self.device)
+        
+        if scheduler == "linear":
+            if step < zero_step:
+                for alpha in self.alphas:
+                    alpha.copy_((zero_step - step) / zero_step)
+            else:
+                for alpha in self.alphas:
+                    alpha.copy_(0.0)
+        elif scheduler == "step":
+            num_steps = kwargs["num_steps"]
+            w = zero_step / num_steps
             for alpha in self.alphas:
-                alpha.copy_((1000 - step) / 1000)
-        else:
-            for alpha in self.alphas:
-                alpha.copy_(0.0)
-        # for alpha in self.alphas:
-        #     print(step, beta_1, beta_2, 1 / (1 + torch.pow(torch.tensor([step * beta_1]), torch.tensor(beta_2))))
-        #     alpha.copy_(1 / (1 + torch.pow(torch.tensor([step * beta_1]), torch.tensor(beta_2))))
-            
+                alpha.copy_(1 - torch.floor(step / w) * (1 / num_steps))
+                
     # @torch.compile
     def forward(
         self,
@@ -862,4 +868,3 @@ class WanTransformer3DModel(
             "hidden_states": hidden_states_list,
             "alphas": self.alphas,
         }
-        # return Transformer2DModelOutput(sample=output)

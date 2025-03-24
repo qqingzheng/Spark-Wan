@@ -1,17 +1,3 @@
-# Copyright 2024 The Wan-Distill Team.
-# All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 import sys
 import copy
 
@@ -187,6 +173,7 @@ def main(args: Args):
     guidance_scale_min = args.step_distill_config.guidance_scale_min
     guidance_scale_max = args.step_distill_config.guidance_scale_max
 
+    transformer = transformer.to(dtype=weight_dtype)
     # Make sure the trainable params are in float32.
     if args.training_config.mixed_precision == "fp16":
         # only upcast trainable parameters into fp32
@@ -638,19 +625,29 @@ def main(args: Args):
                             args=args,
                             pipeline_args=pipeline_args,
                             epoch=global_step,
-                            title="student",
+                            phase_name="student/validation",
                             global_rank=global_rank,
                         )
                     if global_step == 1:
                         unwrap_model(transformer).disable_adapter_layers()
                         pipeline_args["guidance_scale"] = 5.0
                         with torch.no_grad():
+                            pipeline_args["num_inference_steps"] = teacher_steps
                             log_validation(
                                 pipe=pipe,
                                 args=args,
                                 pipeline_args=pipeline_args,
                                 epoch=global_step,
-                                title="teacher",
+                                phase_name="teacher/teacher_step",
+                                global_rank=global_rank,
+                            )
+                            pipeline_args["num_inference_steps"] = student_steps
+                            log_validation(
+                                pipe=pipe,
+                                args=args,
+                                pipeline_args=pipeline_args,
+                                epoch=global_step,
+                                phase_name="teacher/student_step",
                                 global_rank=global_rank,
                             )
                         unwrap_model(transformer).enable_adapter_layers()
@@ -669,7 +666,7 @@ def log_validation(
     pipeline_args,
     epoch,
     is_final_validation: bool = False,
-    title="",
+    phase_name="",
     global_rank=0,
 ):
     print(
@@ -692,7 +689,6 @@ def log_validation(
 
         videos.append(image_pil)
 
-    phase_name = "test" if is_final_validation else "validation"
     video_filenames = []
     for i, video in enumerate(videos):
         prompt = (
@@ -704,16 +700,14 @@ def log_validation(
             .replace("/", "_")
         )
         filename = os.path.join(
-            args.output_dir, f"{title}_{phase_name}_video_{i}_{prompt}.mp4"
+            args.output_dir, f"{phase_name.replace('/', '_')}_video_{i}_{prompt}.mp4"
         )
         export_to_video(video, filename, fps=8)
         video_filenames.append(filename)
     if global_rank == 0:
         wandb.log(
             {
-                title
-                + "/"
-                + phase_name: [
+                phase_name: [
                     wandb.Video(filename, caption=f"{i}: {pipeline_args['prompt']}")
                     for i, filename in enumerate(video_filenames)
                 ]
