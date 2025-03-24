@@ -7,3 +7,4 @@ logs
 *.safetensors
 **/__pycache__/**
 wandb/
+*.mp4

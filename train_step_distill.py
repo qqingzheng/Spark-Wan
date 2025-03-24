@@ -642,8 +642,8 @@ def main(args: Args):
                             global_rank=global_rank,
                         )
                     if global_step == 1:
-                        pipeline_args["cfg"] = 5.0
-                        pipeline_args["num_inference_steps"] = 32
+                        unwrap_model(transformer).disable_adapter_layers()
+                        pipeline_args["guidance_scale"] = 5.0
                         with torch.no_grad():
                             log_validation(
                                 pipe=pipe,
@@ -653,7 +653,7 @@ def main(args: Args):
                                 title="teacher",
                                 global_rank=global_rank,
                             )
-
+                        unwrap_model(transformer).enable_adapter_layers()
             if global_step >= args.training_config.max_train_steps:
                 break
 

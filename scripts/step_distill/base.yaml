@@ -26,7 +26,7 @@ model_config:
   fsdp_transformer: false
   fsdp_text_encoder: false
   lora_rank: 128
-  lora_alpha: 128.0
+  lora_alpha: 256.0
   lora_dropout: 0.0
   flow_shift: 8.0
   is_train_lora: true
