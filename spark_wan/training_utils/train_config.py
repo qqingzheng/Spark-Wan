@@ -91,6 +91,7 @@ class TrainingConfig:
 @dataclass
 class ParallelConfig:
     sp_size: int = field(default=1)
+    reshard_after_forward: bool = field(default=False)
 
 @dataclass
 class StepDistillConfig:

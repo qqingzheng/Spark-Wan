@@ -114,7 +114,8 @@ def main(args: Args):
         lora_alpha=args.model_config.lora_alpha,
         lora_dropout=args.model_config.lora_dropout,
         pretrained_lora_path=args.model_config.pretrained_lora_path,
-        find_unused_parameters=True
+        find_unused_parameters=True,
+        reshard_after_forward=args.parallel_config.reshard_after_forward
     )
     transformer.requires_grad_(False)
     assert len(args.self_layer_distill_config.layers_idx) > 0

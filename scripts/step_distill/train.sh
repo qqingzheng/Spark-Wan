@@ -1,12 +1,11 @@
 #!/bin/bash
 unset http_proxy
 unset https_proxy
-export CUDA_VISIBLE_DEVICES=4,5,6,7
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7,8
 export WANDB_MODE="online"
 export WANDB_API_KEY="9144b562879460494cad9b7abe439e779cfa8af7"
 export MODEL_PATH="/storage/ysh/Ckpts/Wan2.1-T2V-1.3B-Diffusers/"
 export DATASET_PATH="0_template/sucai.json"
-export OUTPUT_PATH="1.3B_fsdp2_sp4_lr1e-5_scale_shift_table_train_next"
 export TOKENIZERS_PARALLELISM=true
 
 export GLOO_SOCKET_IFNAME=bond0
@@ -39,7 +38,7 @@ if [ -z "$NNODES" ]; then
 fi
 
 torchrun \
-  --nproc_per_node 4 \
+  --nproc_per_node 8 \
   --master_addr $MASTER_ADDR \
   --master_port $MASTER_PORT \
   --node_rank $NODE_RANK \
