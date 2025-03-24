@@ -9,7 +9,7 @@ report_to:
   wandb_notes: ""
 
 parallel_config:
-  sp_size: 2
+  sp_size: 4
 
 data_config:
   instance_data_root: "scripts/sucai.json"
