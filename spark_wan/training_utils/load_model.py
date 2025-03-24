@@ -1,0 +1,131 @@
+from typing import Optional, List, Tuple
+
+import torch
+import torch.nn as nn
+from torch.nn.parallel import DistributedDataParallel
+
+from diffusers.training_utils import cast_training_params
+from diffusers.models.normalization import RMSNorm
+from transformers import UMT5EncoderModel, AutoTokenizer
+from transformers.models.umt5.modeling_umt5 import UMT5Block
+from peft import LoraConfig, PeftModel, get_peft_model
+
+from spark_wan.training_utils.fsdp2_utils import prepare_fsdp_model
+from spark_wan.models.transformer_wan import WanTransformerBlock, WanTransformer3DModel
+from spark_wan.models.autoencoder_wan import AutoencoderKLWan
+from spark_wan.modules.fp32_norm import FP32RMSNorm
+
+def replace_rmsnorm_with_fp32(model):
+    for name, module in model.named_modules():
+        if isinstance(module, RMSNorm):
+
+            def new_forward(self, x):
+                return FP32RMSNorm.forward(self, x)
+
+            module.forward = new_forward.__get__(module, module.__class__)
+    return model
+
+def load_model(
+    pretrained_model_name_or_path: str,
+    is_train_lora: bool,
+    fsdp_transformer: bool,
+    fsdp_text_encoder: bool,
+    weight_dtype: torch.dtype,
+    device: torch.device,
+    gradient_checkpointing: bool = True,
+    compile_transformer: bool = False,
+    self_distill_layers_idx: Optional[str] = None,
+    lora_rank: Optional[int] = None,
+    lora_alpha: Optional[float] = None,
+    lora_dropout: Optional[float] = None,
+    lora_target_modules: Optional[List[str]] = None,
+    pretrained_lora_path: Optional[str] = None
+) -> Tuple[AutoTokenizer, UMT5EncoderModel, WanTransformer3DModel, AutoencoderKLWan]:
+    
+    # Load tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(
+        pretrained_model_name_or_path,
+        subfolder="tokenizer"
+    )
+    # Load text encoder
+    text_encoder = UMT5EncoderModel.from_pretrained(
+        pretrained_model_name_or_path,
+        subfolder="text_encoder"
+    )
+    
+    # Load transformer
+    transformer = WanTransformer3DModel.from_pretrained(
+        pretrained_model_name_or_path,
+        subfolder="transformer"
+    )
+    transformer = replace_rmsnorm_with_fp32(transformer)
+    # For self layer distillation
+    if self_distill_layers_idx:
+        transformer.set_self_distill_layers(
+            [int(i) for i in self_distill_layers_idx.split(",")]
+        )
+
+    # Load vae
+    vae = AutoencoderKLWan.from_pretrained(
+        pretrained_model_name_or_path,
+        subfolder="vae"
+    )
+
+    # Setup models
+    text_encoder.requires_grad_(False)
+    text_encoder.eval()
+    vae.requires_grad_(False)
+    vae.eval()
+    vae.to(device, dtype=torch.float32, non_blocking=True)
+
+    if gradient_checkpointing:
+        transformer.enable_gradient_checkpointing()
+
+    transformer.requires_grad_(False)
+    if is_train_lora:
+        transformer_lora_config = LoraConfig(
+            r=lora_rank,
+            target_modules=lora_target_modules,
+            lora_alpha=lora_alpha,
+            lora_dropout=lora_dropout,
+            init_lora_weights=True,
+        )
+        if pretrained_lora_path is None:
+            transformer = get_peft_model(transformer, transformer_lora_config)
+        else:
+            transformer = PeftModel.from_pretrained(
+                transformer, pretrained_lora_path, is_trainable=True
+            )
+    else:
+        for i in transformer.self_distill_layers_idx:
+            transformer.blocks[i - 1].requires_grad_(True)
+            transformer.blocks[i + 1].requires_grad_(True)
+
+    # Compile transformer
+    if compile_transformer:
+        transformer = torch.compile(transformer)
+
+    # FSDP
+    if fsdp_transformer:
+        prepare_fsdp_model(
+            transformer,
+            shard_conditions=[lambda n, m: isinstance(m, WanTransformerBlock)],
+            cpu_offload=False,
+            reshard_after_forward=False,
+            weight_dtype=weight_dtype,
+        )
+    else:
+        transformer = transformer.to(device, dtype=weight_dtype)
+        transformer = DistributedDataParallel(transformer, device_ids=[device])
+
+    if fsdp_text_encoder:
+        prepare_fsdp_model(
+            text_encoder,
+            shard_conditions=[lambda n, m: isinstance(m, (UMT5Block,))],
+            cpu_offload=False,
+            weight_dtype=weight_dtype,
+        )
+    else:
+        text_encoder.to(device, non_blocking=True)
+
+    return tokenizer, text_encoder, transformer, vae

@@ -1,0 +1,8 @@
+dataset_cache
+logs
+*.pth
+*.safetensors
+*.pt
+*.ckpt
+*.safetensors
+**/__pycache__/**
