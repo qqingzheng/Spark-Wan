@@ -10,6 +10,7 @@ report_to:
 
 parallel_config:
   sp_size: 4
+  reshard_after_forward: false
 
 data_config:
   instance_data_root: "scripts/sucai.json"
