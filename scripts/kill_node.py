@@ -22,31 +22,9 @@ n_nodes = len(hostfile)
 
 def run_pdsh_command(host, rank):
     if rank == 0:
-        process = subprocess.run(["pkill", "-f", "train*.py"])
+        subprocess.run(["pkill", "-f", "train_step_distill.py"])
     else:
-        pdsh_command = f"pkill -f train*.py"
-        process = subprocess.run(["ssh", host, pdsh_command])
+        subprocess.run(["ssh", host, "pkill", "-f", "train_step_distill.py"])
 
-    subprocesses.append(process)
-
-
-subprocesses = []
-
-
-def start_processes():
-    processes = []
-    for rank, host in enumerate(hostfile):
-        p = multiprocessing.Process(target=run_pdsh_command, args=(host, rank))
-        processes.append(p)
-        p.start()
-    return processes
-
-try:
-    processes = start_processes()
-    for process in processes:
-        process.join()
-except KeyboardInterrupt:
-    print("Terminating all processes...")
-    for process in processes:
-        process.kill()
-    sys.exit(1)
+for i, host in enumerate(hostfile):
+    run_pdsh_command(host, i)

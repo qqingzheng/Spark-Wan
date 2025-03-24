@@ -36,13 +36,13 @@ def load_model(
     device: torch.device,
     gradient_checkpointing: bool = True,
     compile_transformer: bool = False,
-    self_distill_layers_idx: Optional[str] = None,
     lora_rank: Optional[int] = None,
     lora_alpha: Optional[float] = None,
     lora_dropout: Optional[float] = None,
     lora_target_modules: Optional[List[str]] = None,
     pretrained_lora_path: Optional[str] = None,
     find_unused_parameters: bool = False,
+    reshard_after_forward: bool = True # Zero3
 ) -> Tuple[AutoTokenizer, UMT5EncoderModel, WanTransformer3DModel, AutoencoderKLWan]:
 
     # Load tokenizer
@@ -101,7 +101,7 @@ def load_model(
             transformer,
             shard_conditions=[lambda n, m: isinstance(m, WanTransformerBlock)],
             cpu_offload=False,
-            reshard_after_forward=False,
+            reshard_after_forward=reshard_after_forward,
             weight_dtype=weight_dtype,
         )
     else:
