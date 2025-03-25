@@ -151,14 +151,14 @@ def load_model_state(model, path, device, is_fsdp=False, fsdp_cpu_offload=False)
         os.path.join(path, "model.safetensors")
     )
 
-    # Replace all lora_*.default with lora_* in key
-    keys_to_replace = [
-        key for key in full_state_dict.keys() if "lora" in key and "default" in key
-    ]
-    for key in keys_to_replace:
-        new_key = key.replace("default.", "")
-        full_state_dict[new_key] = full_state_dict[key]
-        del full_state_dict[key]
+    # # Replace all lora_*.default with lora_* in key
+    # keys_to_replace = [
+    #     key for key in full_state_dict.keys() if "lora" in key and "default" in key
+    # ]
+    # for key in keys_to_replace:
+    #     new_key = key.replace("default.", "")
+    #     full_state_dict[new_key] = full_state_dict[key]
+    #     del full_state_dict[key]
 
     if is_fsdp:
         _load_from_full_model_state_dict(

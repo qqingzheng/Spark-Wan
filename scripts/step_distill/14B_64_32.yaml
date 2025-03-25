@@ -41,7 +41,7 @@ validation_config:
   log_teacher_sample: false
 
 training_config:
-  resume_from_checkpoint: null
+  resume_from_checkpoint: /storage/lcm/Wan-Distill/Spark/14B_64_32/checkpoint-200
   gradient_accumulation_steps: 1
   max_train_steps: null
   checkpointing_steps: 200

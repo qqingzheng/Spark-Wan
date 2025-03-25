@@ -540,7 +540,7 @@ def main(args: Args):
                     )
                     scaler.step(disc_optimizer)
             else:
-                rec_loss = torch.mean(
+                rec_loss = torch.sum(
                     torch.abs(latents_student.float() - latents_teacher.float())
                 )
                 loss = rec_loss
