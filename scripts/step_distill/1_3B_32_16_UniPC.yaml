@@ -25,11 +25,12 @@ model_config:
   pretrained_model_name_or_path: "/storage/ysh/Ckpts/Wan2.1-T2V-1.3B-Diffusers/"
   compile_transformer: false
   fsdp_transformer: true
+  fsdp_discriminator: true
   fsdp_text_encoder: false
   lora_rank: 128
   lora_alpha: 256.0
   lora_dropout: 0.0
-  flow_shift: 5.0
+  flow_shift: 8.0
   is_train_lora: true
   lora_target_modules: null # set to null but not null inner.
 

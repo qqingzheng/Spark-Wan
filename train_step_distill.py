@@ -139,7 +139,7 @@ def main(args: Args):
             f"DISC: missing_keys {len(missing_keys)} {missing_keys}, unexpected_keys {len(unexpected_keys)}"
         )
         print(
-            f"DISC: Successfully load {len(pretrained_checkpoint) - len(missing_keys)}/{len(pretrained_checkpoint)} keys from {args.pretrained_model_name_or_path}!"
+            f"DISC: Successfully load {len(pretrained_checkpoint) - len(missing_keys)}/{len(pretrained_checkpoint)} keys!"
         )
         discriminator = replace_rmsnorm_with_fp32(discriminator)
 
@@ -152,7 +152,7 @@ def main(args: Args):
                 weight_dtype=weight_dtype,
             )
         else:
-            discriminator = discriminator.to(device, dtype=weight_dtype)
+            discriminator = discriminator.to(device)
             discriminator = DistributedDataParallel(discriminator, device_ids=[device])
 
     # Setup distillation parameters
@@ -163,12 +163,6 @@ def main(args: Args):
             "use_flow_sigmas": True,
             "num_train_timesteps": 1000,
             "flow_shift": args.model_config.flow_shift,
-        }
-    elif args.step_distill_config.scheduler_type == "Euler":
-        scheduler_type = FlowMatchEulerDiscreteScheduler
-        scheduler_kwargs = {
-            "num_train_timesteps": 1000,
-            "shift": args.model_config.flow_shift,
         }
     else:
         raise ValueError(
@@ -227,8 +221,15 @@ def main(args: Args):
             "lr": args.training_config.learning_rate,
         }
         disc_params_to_optimize = [disc_params_with_lr]
-        disc_optimizer = get_optimizer(args, disc_params_to_optimize)
-
+        disc_optimizer = get_optimizer(
+            optimizer=args.training_config.optimizer,
+            learning_rate=args.training_config.learning_rate,
+            adam_beta1=args.training_config.adam_beta1,
+            adam_beta2=args.training_config.adam_beta2,
+            adam_epsilon=args.training_config.adam_epsilon,
+            adam_weight_decay=args.training_config.adam_weight_decay,
+            params_to_optimize=disc_params_to_optimize,
+        )
     # Resume optimizer state from checkpoint
     if args.training_config.resume_from_checkpoint:
         load_optimizer_state(
@@ -491,7 +492,7 @@ def main(args: Args):
                     unwrap_model(discriminator).requires_grad_(False)
 
                     if args.step_distill_config.distance_weight > 0:
-                        rec_loss = args.step_distill_config.distance_weight * torch.sum(
+                        rec_loss = torch.sum(
                             torch.pow((latents_student - latents_teacher), 2)
                         )
                     else:  # No distance loss
@@ -528,7 +529,7 @@ def main(args: Args):
                         g_loss = torch.tensor(0.0)
 
                     loss = (
-                        rec_loss
+                        args.step_distill_config.distance_weight * rec_loss
                         + adaptive_disc_weight
                         * args.step_distill_config.disc_weight
                         * g_loss

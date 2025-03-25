@@ -20,7 +20,7 @@ weight_dtype = torch.float16
 seed = 2002
 prompt = "A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, a long red dress, and black boots, and carries a black purse. She wears sunglasses and red lipstick. She walks confidently and casually. The street is damp and reflective, creating a mirror effect of the colorful lights. Many pedestrians walk about."
 negative_prompt = "Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards"
-output_video_path = f"experiments/output/unipc_shift_8.0/"
+output_video_path = f"experiments/output/unipc_8_steps/"
 os.makedirs(os.path.dirname(output_video_path), exist_ok=True)
 
 vae = AutoencoderKLWan.from_pretrained(
@@ -53,7 +53,7 @@ pt_images = pipe(
     negative_prompt=negative_prompt,
     height=480,
     width=832,
-    num_inference_steps=32,
+    num_inference_steps=8,
     num_frames=81,
     guidance_scale=5.0,
     generator=generator,

@@ -28,6 +28,7 @@ class ModelConfig:
     )
     compile_transformer: bool = field(default=False)
     fsdp_transformer: bool = field(default=False)
+    fsdp_discriminator: bool = field(default=False)
     fsdp_text_encoder: bool = field(default=False)
     sp_size: int = field(default=1)
     is_train_lora: bool = field(default=False)
