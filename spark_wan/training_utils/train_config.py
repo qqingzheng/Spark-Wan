@@ -57,7 +57,7 @@ class TrainingConfig:
     checkpointing_steps: int = field(default=500)
     train_batch_size: int = field(default=4)
     num_train_epochs: int = field(default=1)
-    gradient_checkpointing: bool = field(default=False)
+    gradient_checkpointing: bool = field(default=True)
     mixed_precision: str = field(
         default="bf16",
         metadata={"choices": ["no", "fp16", "bf16"]},
@@ -114,7 +114,7 @@ class StepDistillConfig:
     disc_start: int = field(default=0)
     distance_weight: float = field(default=1.0)
     disc_weight: float = field(default=1.0)
-
+    scheduler_type: str = field(default="UniPC")
 
 @dataclass
 class SelfLayerDistillConfig:
@@ -122,7 +122,6 @@ class SelfLayerDistillConfig:
     scheduler: str = field(default="linear")
     zero_step: int = field(default=1000)
     scheduler_config: Dict[str, Any] = field(default_factory=dict)
-
 
 @dataclass
 class Args:

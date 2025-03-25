@@ -45,7 +45,7 @@ training_config:
   checkpointing_steps: 500
   train_batch_size: 1
   num_train_epochs: 10
-  gradient_checkpointing: false
+  gradient_checkpointing: true
   mixed_precision: fp16
   learning_rate: 0.00001
   lr_scheduler: constant

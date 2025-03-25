@@ -1,15 +1,16 @@
-output_dir: wan-lora
+output_dir: 1_3B_32_16_Euler_only_GAN
 logging_dir: logs
 seed: 42
 
 report_to:
   wandb: true
-  project_name: Spark-Wan-Self-Layer-Distill
-  wandb_name: scheduler_step_50_zero_2000
+  project_name: Spark-Wan
+  wandb_name: 1_3B_32_16_Euler_only_GAN
   wandb_notes: ""
 
 parallel_config:
   sp_size: 1
+  reshard_after_forward: false
 
 data_config:
   instance_data_root: "scripts/sucai.json"
@@ -23,12 +24,12 @@ model_config:
   pretrained_lora_path: null
   pretrained_model_name_or_path: "/storage/ysh/Ckpts/Wan2.1-T2V-1.3B-Diffusers/"
   compile_transformer: false
-  fsdp_transformer: false
+  fsdp_transformer: true
   fsdp_text_encoder: false
   lora_rank: 128
   lora_alpha: 256.0
   lora_dropout: 0.0
-  flow_shift: 8.0
+  flow_shift: 5.0
   is_train_lora: true
   lora_target_modules: null # set to null but not null inner.
 
@@ -37,12 +38,13 @@ validation_config:
   validation_prompt: "A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, a long red dress, and black boots, and carries a black purse. She wears sunglasses and red lipstick. She walks confidently and casually. The street is damp and reflective, creating a mirror effect of the colorful lights. Many pedestrians walk about."
   validation_prompt_separator: ":::"
   num_validation_videos: 1
+  log_teacher_sample: true
 
 training_config:
   resume_from_checkpoint: null
   gradient_accumulation_steps: 1
   max_train_steps: null
-  checkpointing_steps: 500
+  checkpointing_steps: 200
   train_batch_size: 1
   num_train_epochs: 10
   gradient_checkpointing: true
@@ -56,9 +58,14 @@ training_config:
   adam_epsilon: 1e-08
   max_grad_norm: 1.0
 
-self_layer_distill_config:
-  layers_idx: [4, 8, 12]
-  scheduler: step
-  zero_step: 2000
-  scheduler_config:
-    num_steps: 50 # 1000 / 50 = 20
+step_distill_config:
+  teacher_step: 32
+  student_step: 16
+  guidance_scale_max: 8.0
+  guidance_scale_min: 4.0
+  is_gan_distill: true
+  disc_interval: 1
+  disc_start: 0
+  distance_weight: 0.0
+  disc_weight: 1.0
+  scheduler_type: Euler

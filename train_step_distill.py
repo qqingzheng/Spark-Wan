@@ -38,6 +38,7 @@ from tqdm.auto import tqdm
 import diffusers
 from diffusers import (
     UniPCMultistepScheduler,
+    FlowMatchEulerDiscreteScheduler,
     WanPipeline,
 )
 from diffusers.image_processor import VaeImageProcessor
@@ -155,18 +156,28 @@ def main(args: Args):
             discriminator = DistributedDataParallel(discriminator, device_ids=[device])
 
     # Setup distillation parameters
-    teacher_noise_scheduler = UniPCMultistepScheduler(
-        prediction_type="flow_prediction",
-        use_flow_sigmas=True,
-        num_train_timesteps=1000,
-        flow_shift=args.model_config.flow_shift,
-    )
-    student_noise_scheduler = UniPCMultistepScheduler(
-        prediction_type="flow_prediction",
-        use_flow_sigmas=True,
-        num_train_timesteps=1000,
-        flow_shift=args.model_config.flow_shift,
-    )
+    if args.step_distill_config.scheduler_type == "UniPC":
+        scheduler_type = UniPCMultistepScheduler
+        scheduler_kwargs = {
+            "prediction_type": "flow_prediction",
+            "use_flow_sigmas": True,
+            "num_train_timesteps": 1000,
+            "flow_shift": args.model_config.flow_shift,
+        }
+    elif args.step_distill_config.scheduler_type == "Euler":
+        scheduler_type = FlowMatchEulerDiscreteScheduler
+        scheduler_kwargs = {
+            "num_train_timesteps": 1000,
+            "shift": args.model_config.flow_shift,
+        }
+    else:
+        raise ValueError(
+            f"Scheduler type {args.step_distill_config.scheduler_type} not supported"
+        )
+    print(f"Scheduler type: {args.step_distill_config.scheduler_type}")
+
+    teacher_noise_scheduler = scheduler_type(**scheduler_kwargs)
+    student_noise_scheduler = scheduler_type(**scheduler_kwargs)
     teacher_steps = args.step_distill_config.teacher_step
     student_steps = args.step_distill_config.student_step
     guidance_scale_min = args.step_distill_config.guidance_scale_min
@@ -474,13 +485,18 @@ def main(args: Args):
                 args.step_distill_config.is_gan_distill
             ):  # If training with discriminator
                 if (
-                    step % args.step_distill_config.disc_interval == 0
+                    step % args.step_distill_config.disc_interval != 0
                     or step < args.step_distill_config.disc_start
                 ):
                     unwrap_model(discriminator).requires_grad_(False)
-                    rec_loss = args.step_distill_config.distance_weight * torch.sum(
-                        torch.pow((latents_student - latents_teacher), 2)
-                    )
+
+                    if args.step_distill_config.distance_weight > 0:
+                        rec_loss = args.step_distill_config.distance_weight * torch.sum(
+                            torch.pow((latents_student - latents_teacher), 2)
+                        )
+                    else:  # No distance loss
+                        rec_loss = torch.tensor(0.0)
+
                     if step >= args.step_distill_config.disc_start:
                         score_student = discriminator(
                             hidden_states=latents_student,
@@ -489,30 +505,35 @@ def main(args: Args):
                             return_dict=False,
                         )
                         g_loss = -torch.mean(score_student)
-                        adaptive_disc_weight = calculate_adaptive_weight(
-                            rec_loss,
-                            g_loss,
-                            [
-                                unwrap_model(transformer)
-                                .base_model.blocks[-1]
-                                .ffn.net[2]
-                                .lora_A.default.weight,
-                                unwrap_model(transformer)
-                                .base_model.blocks[-1]
-                                .ffn.net[2]
-                                .lora_B.default.weight,
-                            ],
-                        )
+                        if args.step_distill_config.distance_weight > 0:
+                            adaptive_disc_weight = calculate_adaptive_weight(
+                                rec_loss,
+                                g_loss,
+                                [
+                                    unwrap_model(transformer)
+                                    .base_model.blocks[-1]
+                                    .ffn.net[2]
+                                    .lora_A.default.weight,
+                                    unwrap_model(transformer)
+                                    .base_model.blocks[-1]
+                                    .ffn.net[2]
+                                    .lora_B.default.weight,
+                                ],
+                            )
+                        else:
+                            # No distance loss, so we use a constant weight
+                            adaptive_disc_weight = torch.tensor(1.0)
                     else:
-                        adaptive_disc_weight = torch.tensor(0)
-                        g_loss = torch.tensor(0)
+                        adaptive_disc_weight = torch.tensor(0.0)
+                        g_loss = torch.tensor(0.0)
+
                     loss = (
                         rec_loss
                         + adaptive_disc_weight
                         * args.step_distill_config.disc_weight
                         * g_loss
                     )
-                    scaler.scale(g_loss).backward()
+                    scaler.scale(loss).backward()
                     torch.nn.utils.clip_grad_norm_(
                         transformer_lora_parameters, args.training_config.max_grad_norm
                     )
@@ -531,8 +552,6 @@ def main(args: Args):
                         encoder_hidden_states=prompt_embeds,
                         return_dict=False,
                     )
-                    # print(score_teacher.shape)
-                    # loss = - torch.log(score_teacher) - torch.log(score_student)
                     loss = hinge_d_loss(score_teacher, score_student)
                     scaler.scale(loss).backward()
                     torch.nn.utils.clip_grad_norm_(
@@ -621,12 +640,7 @@ def main(args: Args):
                 or global_step == 1
             ):
                 print(f"Validation {global_rank}")
-                noise_scheduler_valid = UniPCMultistepScheduler(
-                    prediction_type="flow_prediction",
-                    use_flow_sigmas=True,
-                    num_train_timesteps=1000,
-                    flow_shift=args.model_config.flow_shift,
-                )
+                noise_scheduler_valid = scheduler_type(**scheduler_kwargs)
                 pipe = WanPipeline.from_pretrained(
                     args.model_config.pretrained_model_name_or_path,
                     transformer=unwrap_model(transformer),

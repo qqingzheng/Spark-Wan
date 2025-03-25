@@ -37,6 +37,11 @@ if [ -z "$NNODES" ]; then
   export NNODES=1
 fi
 
+if [ -z $1 ]; then
+  echo "Usage: $0 <config_file>"
+  exit 1
+fi
+
 torchrun \
   --nproc_per_node 8 \
   --master_addr $MASTER_ADDR \
@@ -44,4 +49,4 @@ torchrun \
   --node_rank $NODE_RANK \
   --nnodes $NNODES \
   train_step_distill.py \
-  --config scripts/step_distill/14B_64_32.yaml
+  --config $1
