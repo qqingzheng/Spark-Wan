@@ -1,4 +1,4 @@
-output_dir: wan-lora
+output_dir: 14B_64_32
 logging_dir: logs
 seed: 2002
 
@@ -34,16 +34,17 @@ model_config:
   lora_target_modules: null # set to null but not null inner.
 
 validation_config:
-  validation_steps: 200
+  validation_steps: 100
   validation_prompt: "A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, a long red dress, and black boots, and carries a black purse. She wears sunglasses and red lipstick. She walks confidently and casually. The street is damp and reflective, creating a mirror effect of the colorful lights. Many pedestrians walk about."
   validation_prompt_separator: ":::"
   num_validation_videos: 1
+  log_teacher_sample: false
 
 training_config:
   resume_from_checkpoint: null
   gradient_accumulation_steps: 1
   max_train_steps: null
-  checkpointing_steps: 500
+  checkpointing_steps: 200
   train_batch_size: 1
   num_train_epochs: 10
   gradient_checkpointing: false

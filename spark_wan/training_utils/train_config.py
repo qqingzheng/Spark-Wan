@@ -40,6 +40,7 @@ class ValidationConfig:
     validation_prompt: Optional[str] = field(default="A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, a long red dress, and black boots, and carries a black purse. She wears sunglasses and red lipstick. She walks confidently and casually. The street is damp and reflective, creating a mirror effect of the colorful lights. Many pedestrians walk about.")
     validation_prompt_separator: str = field(default=":::")
     num_validation_videos: int = field(default=1)
+    log_teacher_sample: bool = field(default=False)
 
 @dataclass
 class TrainingConfig:

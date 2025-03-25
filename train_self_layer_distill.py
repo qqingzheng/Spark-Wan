@@ -523,7 +523,8 @@ def log_validation(
         filename = os.path.join(
             args.output_dir, f"{phase_name.replace('/', '_')}_video_{i}_{prompt}.mp4"
         )
-        export_to_video(video, filename, fps=8)
+        if global_rank == 0:
+            export_to_video(video, filename, fps=8)
         video_filenames.append(filename)
     if global_rank == 0:
         wandb.log(

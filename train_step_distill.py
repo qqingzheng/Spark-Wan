@@ -628,7 +628,7 @@ def main(args: Args):
                             phase_name="student/validation",
                             global_rank=global_rank,
                         )
-                    if global_step == 1:
+                    if global_step == 1 and args.validation_config.log_teacher_sample:
                         unwrap_model(transformer).disable_adapter_layers()
                         pipeline_args["guidance_scale"] = 5.0
                         with torch.no_grad():
@@ -702,7 +702,8 @@ def log_validation(
         filename = os.path.join(
             args.output_dir, f"{phase_name.replace('/', '_')}_video_{i}_{prompt}.mp4"
         )
-        export_to_video(video, filename, fps=8)
+        if global_rank == 0:
+            export_to_video(video, filename, fps=8)
         video_filenames.append(filename)
     if global_rank == 0:
         wandb.log(
