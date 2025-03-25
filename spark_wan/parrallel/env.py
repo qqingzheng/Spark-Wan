@@ -1,6 +1,7 @@
 import numpy as np
 import torch.distributed as dist
 
+
 # Global variables
 sequence_parrallel_group = None
 
@@ -53,5 +54,5 @@ def setup_sequence_parallel_group(sp_size: int):
     else:
         sp_group_index = 0
         sp_group_local_rank = 0
-        
+
     return sp_group_index, sp_group_local_rank, dp_rank, dp_size

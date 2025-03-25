@@ -16,11 +16,16 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
+from spark_wan.models.transformer_wan import WanTransformer3DModel
+
 from diffusers.configuration_utils import register_to_config
 from diffusers.models.normalization import FP32LayerNorm
-from diffusers.utils import USE_PEFT_BACKEND, logging, scale_lora_layers, unscale_lora_layers
-
-from spark_wan.models.transformer_wan import WanTransformer3DModel
+from diffusers.utils import (
+    USE_PEFT_BACKEND,
+    logging,
+    scale_lora_layers,
+    unscale_lora_layers,
+)
 
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
@@ -66,7 +71,13 @@ class WanDiscriminator(WanTransformer3DModel):
     _supports_gradient_checkpointing = True
     _skip_layerwise_casting_patterns = ["patch_embedding", "condition_embedder", "norm"]
     _no_split_modules = ["WanTransformerBlock"]
-    _keep_in_fp32_modules = ["time_embedder", "scale_shift_table", "norm1", "norm2", "norm3"]
+    _keep_in_fp32_modules = [
+        "time_embedder",
+        "scale_shift_table",
+        "norm1",
+        "norm2",
+        "norm3",
+    ]
 
     @register_to_config
     def __init__(
@@ -110,7 +121,9 @@ class WanDiscriminator(WanTransformer3DModel):
 
         self.dis_head = nn.Sequential(
             nn.Conv3d(
-                num_attention_heads * attention_head_dim // (patch_size[0] * patch_size[1] * patch_size[2]),
+                num_attention_heads
+                * attention_head_dim
+                // (patch_size[0] * patch_size[1] * patch_size[2]),
                 512,
                 kernel_size=(3, 3, 3),
                 stride=1,
@@ -154,7 +167,10 @@ class WanDiscriminator(WanTransformer3DModel):
             # weight the lora layers by setting `lora_scale` for each PEFT layer
             scale_lora_layers(self, lora_scale)
         else:
-            if attention_kwargs is not None and attention_kwargs.get("scale", None) is not None:
+            if (
+                attention_kwargs is not None
+                and attention_kwargs.get("scale", None) is not None
+            ):
                 logger.warning(
                     "Passing `scale` via `attention_kwargs` when not using the PEFT backend is ineffective."
                 )
@@ -166,35 +182,47 @@ class WanDiscriminator(WanTransformer3DModel):
         hidden_states = self.patch_embedding(hidden_states)
         hidden_states = hidden_states.flatten(2).transpose(1, 2)
 
-        temb, timestep_proj, encoder_hidden_states, encoder_hidden_states_image = self.condition_embedder(
-            timestep, encoder_hidden_states, encoder_hidden_states_image
+        temb, timestep_proj, encoder_hidden_states, encoder_hidden_states_image = (
+            self.condition_embedder(
+                timestep, encoder_hidden_states, encoder_hidden_states_image
+            )
         )
         timestep_proj = timestep_proj.unflatten(1, (6, -1))
 
         if encoder_hidden_states_image is not None:
-            encoder_hidden_states = torch.concat([encoder_hidden_states_image, encoder_hidden_states], dim=1)
+            encoder_hidden_states = torch.concat(
+                [encoder_hidden_states_image, encoder_hidden_states], dim=1
+            )
 
         # 4. Transformer blocks
         if torch.is_grad_enabled() and self.gradient_checkpointing:
             for block in self.blocks:
                 hidden_states = self._gradient_checkpointing_func(
-                    block, hidden_states, encoder_hidden_states, timestep_proj, rotary_emb
+                    block,
+                    hidden_states,
+                    encoder_hidden_states,
+                    timestep_proj,
+                    rotary_emb,
                 )
         else:
             for block in self.blocks:
-                hidden_states = block(hidden_states, encoder_hidden_states, timestep_proj, rotary_emb)
+                hidden_states = block(
+                    hidden_states, encoder_hidden_states, timestep_proj, rotary_emb
+                )
 
         # GAN Distill Need
         hidden_states = hidden_states.reshape(
             batch_size, num_frames, height, width, -1
         )  # torch.Size([1, 21, 60, 104, 384])
-        hidden_states = hidden_states.permute(0, 4, 1, 2, 3)  # torch.Size([1, 384, 21, 60, 104])
+        hidden_states = hidden_states.permute(
+            0, 4, 1, 2, 3
+        )  # torch.Size([1, 384, 21, 60, 104])
         output = self.dis_head(hidden_states)
 
         if USE_PEFT_BACKEND:
             # remove `lora_scale` from each PEFT layer
             unscale_lora_layers(self, lora_scale)
-            
+
         return output
 
 

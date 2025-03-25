@@ -1,5 +1,7 @@
 from typing import List
+
 import torch
+
 
 def get_optimizer(
     optimizer: str,
@@ -30,7 +32,6 @@ def get_optimizer(
             f"Unsupported choice of optimizer: {optimizer}. Supported optimizers include {supported_optimizers}. Defaulting to AdamW"
         )
         optimizer = "adamw"
-
 
     if optimizer.lower() == "adamw":
         optimizer_class = torch.optim.AdamW

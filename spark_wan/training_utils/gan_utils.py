@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 
+
 def calculate_adaptive_weight(nll_loss, g_loss, last_layer=None):
     if nll_loss == 0:
         return torch.tensor(1)

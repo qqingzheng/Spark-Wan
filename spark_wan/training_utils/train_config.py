@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 
 @dataclass
 class ReportTo:
@@ -7,6 +8,7 @@ class ReportTo:
     project_name: str = field(default="Spark-Wan")
     wandb_name: str = field(default="testrun")
     wandb_notes: str = field(default="")
+
 
 @dataclass
 class DataConfig:
@@ -16,6 +18,7 @@ class DataConfig:
     fps: int = field(default=8)
     max_num_frames: int = field(default=49)
     dataloader_num_workers: int = field(default=0)
+
 
 @dataclass
 class ModelConfig:
@@ -33,14 +36,18 @@ class ModelConfig:
     lora_dropout: float = field(default=0.0)
     lora_target_modules: Optional[str] = field(default=None)
     flow_shift: float = field(default=8.0)
-    
+
+
 @dataclass
 class ValidationConfig:
     validation_steps: int = field(default=100)
-    validation_prompt: Optional[str] = field(default="A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, a long red dress, and black boots, and carries a black purse. She wears sunglasses and red lipstick. She walks confidently and casually. The street is damp and reflective, creating a mirror effect of the colorful lights. Many pedestrians walk about.")
+    validation_prompt: Optional[str] = field(
+        default="A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, a long red dress, and black boots, and carries a black purse. She wears sunglasses and red lipstick. She walks confidently and casually. The street is damp and reflective, creating a mirror effect of the colorful lights. Many pedestrians walk about."
+    )
     validation_prompt_separator: str = field(default=":::")
     num_validation_videos: int = field(default=1)
     log_teacher_sample: bool = field(default=False)
+
 
 @dataclass
 class TrainingConfig:
@@ -88,11 +95,13 @@ class TrainingConfig:
     logit_mean: float = field(default=0.0)
     logit_std: float = field(default=1.0)
     mode_scale: float = field(default=1.29)
-    
+
+
 @dataclass
 class ParallelConfig:
     sp_size: int = field(default=1)
     reshard_after_forward: bool = field(default=False)
+
 
 @dataclass
 class StepDistillConfig:
@@ -105,14 +114,16 @@ class StepDistillConfig:
     disc_start: int = field(default=0)
     distance_weight: float = field(default=1.0)
     disc_weight: float = field(default=1.0)
-    
+
+
 @dataclass
 class SelfLayerDistillConfig:
     layers_idx: List[int] = field(default_factory=list)
     scheduler: str = field(default="linear")
     zero_step: int = field(default=1000)
     scheduler_config: Dict[str, Any] = field(default_factory=dict)
-    
+
+
 @dataclass
 class Args:
     output_dir: str = field(default="wan-lora")

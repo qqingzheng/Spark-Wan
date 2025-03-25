@@ -1,19 +1,16 @@
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
-import torch.nn as nn
-from torch.nn.parallel import DistributedDataParallel
-
-from diffusers.training_utils import cast_training_params
-from diffusers.models.normalization import RMSNorm
-from transformers import UMT5EncoderModel, AutoTokenizer
-from transformers.models.umt5.modeling_umt5 import UMT5Block
 from peft import LoraConfig, PeftModel, get_peft_model
-
-from spark_wan.training_utils.fsdp2_utils import prepare_fsdp_model
-from spark_wan.models.transformer_wan import WanTransformerBlock, WanTransformer3DModel
 from spark_wan.models.autoencoder_wan import AutoencoderKLWan
+from spark_wan.models.transformer_wan import WanTransformer3DModel, WanTransformerBlock
 from spark_wan.modules.fp32_norm import FP32RMSNorm
+from spark_wan.training_utils.fsdp2_utils import prepare_fsdp_model
+from torch.nn.parallel import DistributedDataParallel
+from transformers import AutoTokenizer, UMT5EncoderModel
+from transformers.models.umt5.modeling_umt5 import UMT5Block
+
+from diffusers.models.normalization import RMSNorm
 
 
 def replace_rmsnorm_with_fp32(model):
@@ -42,7 +39,7 @@ def load_model(
     lora_target_modules: Optional[List[str]] = None,
     pretrained_lora_path: Optional[str] = None,
     find_unused_parameters: bool = False,
-    reshard_after_forward: bool = True # Zero3
+    reshard_after_forward: bool = True,  # Zero3
 ) -> Tuple[AutoTokenizer, UMT5EncoderModel, WanTransformer3DModel, AutoencoderKLWan]:
 
     # Load tokenizer

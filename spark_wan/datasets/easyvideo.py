@@ -3,7 +3,6 @@ import logging
 import os
 import pickle
 import random
-from pathlib import Path
 from typing import List, Optional, Tuple
 
 import decord
@@ -17,6 +16,7 @@ from torchvision.transforms._transforms_video import (
     ToTensorVideo,
 )
 from tqdm import tqdm
+
 
 class EasyVideoDataset(Dataset):
     def __init__(
@@ -43,7 +43,9 @@ class EasyVideoDataset(Dataset):
         if cache_dir and not os.path.exists(cache_dir):
             os.makedirs(cache_dir, exist_ok=True)
 
-        for base_dir, json_or_pkl_path in tqdm(video_data, desc="Processing video data"):
+        for base_dir, json_or_pkl_path in tqdm(
+            video_data, desc="Processing video data"
+        ):
             file_base_name = (
                 os.path.basename(json_or_pkl_path)
                 + f"_{self.num_frames}_{self.video_size[0]}_{self.video_size[1]}.cache"
@@ -97,9 +99,11 @@ class EasyVideoDataset(Dataset):
             video_reader = decord.VideoReader(self.data[idx]["path"])
         except Exception:  # If loading video failed, return a random video
             return self.__getitem__(random.randint(0, len(self.data) - 1))
-        
+
         start = self.data[idx]["cut"][0]
-        video = video_reader.get_batch(list(range(start, start + self.num_frames))).asnumpy()
+        video = video_reader.get_batch(
+            list(range(start, start + self.num_frames))
+        ).asnumpy()
         video = torch.from_numpy(video)  # t h w c
         video = video[
             :,

@@ -1,8 +1,6 @@
 import argparse
-import multiprocessing
 import os
 import subprocess
-import sys
 
 
 parser = argparse.ArgumentParser()
@@ -20,6 +18,7 @@ master_addr = hostfile[0]
 master_port = args.master_port
 n_nodes = len(hostfile)
 
+
 def run_pdsh_command(host, rank):
     if rank == 0:
         subprocess.run(["pkill", "-f", "train_step_distill.py"])
@@ -27,6 +26,7 @@ def run_pdsh_command(host, rank):
     else:
         subprocess.run(["ssh", host, "pkill", "-f", "train_step_distill.py"])
         subprocess.run(["ssh", host, "pkill", "-f", "ConsisID"])
+
 
 for i, host in enumerate(hostfile):
     run_pdsh_command(host, i)

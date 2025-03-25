@@ -17,9 +17,13 @@ import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.distributed as dist
+from peft import PeftModel
+from spark_wan.parrallel.env import get_sequence_parallel_group
+from spark_wan.parrallel.sp_modules import Gather, SplitAndAllToAll, SplitAndScatter
+
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.loaders import FromOriginalModelMixin, PeftAdapterMixin
 from diffusers.models.attention import FeedForward
@@ -39,10 +43,7 @@ from diffusers.utils import (
     scale_lora_layers,
     unscale_lora_layers,
 )
-from peft import PeftModel
 
-from spark_wan.parrallel.env import get_sequence_parallel_group
-from spark_wan.parrallel.sp_modules import Gather, SplitAndAllToAll, SplitAndScatter
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -289,7 +290,7 @@ class WanTransformerBlock(nn.Module):
         qk_norm: str = "rms_norm_across_heads",
         cross_attn_norm: bool = False,
         eps: float = 1e-6,
-        added_kv_proj_dim: Optional[int] = None
+        added_kv_proj_dim: Optional[int] = None,
     ):
         super().__init__()
 
@@ -491,7 +492,7 @@ class WanTransformer3DModel(
                     qk_norm,
                     cross_attn_norm,
                     eps,
-                    added_kv_proj_dim
+                    added_kv_proj_dim,
                 )
                 for _ in range(num_layers)
             ]
@@ -616,15 +617,20 @@ class WanTransformer3DModel(
 
         self.alphas = nn.ParameterList(
             [
-                nn.Parameter(torch.tensor([1.0],dtype=self.dtype, device=self.device), requires_grad=False)
+                nn.Parameter(
+                    torch.tensor([1.0], dtype=self.dtype, device=self.device),
+                    requires_grad=False,
+                )
                 for _ in range(len(self.self_distill_layers_idx))
             ]
         )
-        
-    def step_alpha_decay(self, step: int, zero_step: int = 1000, scheduler: str = "linear", **kwargs):
+
+    def step_alpha_decay(
+        self, step: int, zero_step: int = 1000, scheduler: str = "linear", **kwargs
+    ):
         step = torch.tensor(step, dtype=self.dtype, device=self.device)
         zero_step = torch.tensor(zero_step, dtype=self.dtype, device=self.device)
-        
+
         if scheduler == "linear":
             if step < zero_step:
                 for alpha in self.alphas:
@@ -637,7 +643,7 @@ class WanTransformer3DModel(
             w = zero_step / num_steps
             for alpha in self.alphas:
                 alpha.copy_(1 - torch.floor(step / w) * (1 / num_steps))
-                
+
     # @torch.compile
     def forward(
         self,
@@ -801,13 +807,19 @@ class WanTransformer3DModel(
                         hidden_states = hidden_states.to(torch.float32)
                         encoder_hidden_states = encoder_hidden_states.to(torch.float32)
                         hidden_states = block(
-                            hidden_states, encoder_hidden_states, timestep_proj, rotary_emb
+                            hidden_states,
+                            encoder_hidden_states,
+                            timestep_proj,
+                            rotary_emb,
                         )
                         hidden_states = hidden_states.to(origin_dtype)
                         encoder_hidden_states = encoder_hidden_states.to(origin_dtype)
                     else:
                         hidden_states = block(
-                            hidden_states, encoder_hidden_states, timestep_proj, rotary_emb
+                            hidden_states,
+                            encoder_hidden_states,
+                            timestep_proj,
+                            rotary_emb,
                         )
 
                 # For Layer distill

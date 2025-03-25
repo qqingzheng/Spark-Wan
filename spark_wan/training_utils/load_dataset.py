@@ -1,9 +1,10 @@
 import json
+
 import torch
+from spark_wan.datasets.easyvideo import EasyVideoDataset
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 
-from spark_wan.datasets.easyvideo import EasyVideoDataset
 
 def easy_collate_fn(examples):
     videos = [example["instance_video"].unsqueeze(0) for example in examples]
@@ -14,6 +15,7 @@ def easy_collate_fn(examples):
         "prompts": prompts,
     }
 
+
 def load_easyvideo_dataset(
     height: int,
     width: int,
@@ -22,9 +24,9 @@ def load_easyvideo_dataset(
     train_batch_size: int,
     dataloader_num_workers: int,
     dp_rank: int,
-    dp_size: int
+    dp_size: int,
 ) -> StatefulDataLoader:
-    
+
     train_dataset = EasyVideoDataset(
         video_size=(height, width),
         num_frames=max_num_frames,

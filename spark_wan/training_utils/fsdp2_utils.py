@@ -1,13 +1,17 @@
 """reference: https://github.com/pytorch/torchtune/blob/main/torchtune/training/_distributed.py"""
 
 import os
-from typing import Any, Dict, cast, List, Callable, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 import safetensors
 import torch
 import torch.distributed as dist
 import torch.nn as nn
-from torch.nn.parallel import DistributedDataParallel
+from torch.distributed._composable.fsdp import (
+    CPUOffloadPolicy,
+    MixedPrecisionPolicy,
+    fully_shard,
+)
 from torch.distributed._tensor import DTensor, distribute_tensor
 from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.checkpoint.state_dict import (
@@ -16,18 +20,16 @@ from torch.distributed.checkpoint.state_dict import (
     get_optimizer_state_dict,
 )
 from torch.distributed.device_mesh import DeviceMesh
+from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
-from torch.distributed._composable.fsdp import (
-    CPUOffloadPolicy,
-    MixedPrecisionPolicy,
-    fully_shard,
-)
+
 
 def unwrap_model(model: nn.Module) -> nn.Module:
     if isinstance(model, DistributedDataParallel):
         return model.module
     return model
+
 
 def prepare_fsdp_model(
     model: nn.Module,
@@ -63,6 +65,7 @@ def prepare_fsdp_model(
         )
 
     fully_shard(model, **fsdp_kwargs)
+
 
 def save_state(
     output_dir,

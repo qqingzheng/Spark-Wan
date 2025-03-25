@@ -1,5 +1,6 @@
-import sys
 import copy
+import sys
+
 
 sys.path.append(".")
 
@@ -7,35 +8,12 @@ import argparse
 import logging
 import math
 import os
-from pathlib import Path
 
-import diffusers
 import torch
 import torch.distributed as dist
 import transformers
-from diffusers.image_processor import VaeImageProcessor
-from diffusers.training_utils import (
-    cast_training_params,
-    free_memory,
-    compute_density_for_timestep_sampling,
-    compute_loss_weighting_for_sd3,
-    set_seed,
-)
-from diffusers import (
-    UniPCMultistepScheduler,
-    FlowMatchEulerDiscreteScheduler,
-    WanPipeline,
-)
-from diffusers.optimization import get_scheduler
-from diffusers.utils import check_min_version, is_wandb_available, export_to_video
-from torch.amp import GradScaler
-from tqdm.auto import tqdm
-
-from spark_wan.training_utils.load_dataset import load_easyvideo_dataset
-from spark_wan.training_utils.load_model import (
-    load_model,
-)
-from spark_wan.training_utils.load_optimizer import get_optimizer
+from spark_wan.parrallel.env import setup_sequence_parallel_group
+from spark_wan.training_utils.flow_utils import get_sigmas
 from spark_wan.training_utils.fsdp2_utils import (
     load_model_state,
     load_optimizer_state,
@@ -44,9 +22,31 @@ from spark_wan.training_utils.fsdp2_utils import (
     unwrap_model,
 )
 from spark_wan.training_utils.input_process import encode_prompt
-from spark_wan.parrallel.env import setup_sequence_parallel_group
+from spark_wan.training_utils.load_dataset import load_easyvideo_dataset
+from spark_wan.training_utils.load_model import (
+    load_model,
+)
+from spark_wan.training_utils.load_optimizer import get_optimizer
 from spark_wan.training_utils.train_config import Args
-from spark_wan.training_utils.flow_utils import get_sigmas
+from torch.amp import GradScaler
+from tqdm.auto import tqdm
+
+import diffusers
+from diffusers import (
+    FlowMatchEulerDiscreteScheduler,
+    UniPCMultistepScheduler,
+    WanPipeline,
+)
+from diffusers.image_processor import VaeImageProcessor
+from diffusers.optimization import get_scheduler
+from diffusers.training_utils import (
+    compute_density_for_timestep_sampling,
+    compute_loss_weighting_for_sd3,
+    free_memory,
+    set_seed,
+)
+from diffusers.utils import check_min_version, export_to_video, is_wandb_available
+
 
 if is_wandb_available():
     import wandb
@@ -89,7 +89,6 @@ def main(args: Args):
     if global_rank == 0:
         if args.output_dir is not None:
             os.makedirs(args.output_dir, exist_ok=True)
-    logging_dir = Path(args.output_dir, args.logging_dir)
 
     # Mixed precision training
     weight_dtype = torch.float32
@@ -115,15 +114,17 @@ def main(args: Args):
         lora_dropout=args.model_config.lora_dropout,
         pretrained_lora_path=args.model_config.pretrained_lora_path,
         find_unused_parameters=True,
-        reshard_after_forward=args.parallel_config.reshard_after_forward
+        reshard_after_forward=args.parallel_config.reshard_after_forward,
     )
     transformer.requires_grad_(False)
     assert len(args.self_layer_distill_config.layers_idx) > 0
-    unwrap_model(transformer).set_self_distill_layers(args.self_layer_distill_config.layers_idx)
+    unwrap_model(transformer).set_self_distill_layers(
+        args.self_layer_distill_config.layers_idx
+    )
     for i in args.self_layer_distill_config.layers_idx:
         unwrap_model(transformer).blocks[i - 1].requires_grad_(True)
         unwrap_model(transformer).blocks[i + 1].requires_grad_(True)
-    
+
     # Setup scheduler
     noise_scheduler_valid = UniPCMultistepScheduler(
         prediction_type="flow_prediction",
@@ -338,7 +339,10 @@ def main(args: Args):
             # Add noise according to flow matching.
             # zt = (1 - texp) * x + texp * z1
             sigmas = get_sigmas(
-                noise_scheduler_copy, timesteps, n_dim=model_input.ndim, dtype=model_input.dtype
+                noise_scheduler_copy,
+                timesteps,
+                n_dim=model_input.ndim,
+                dtype=model_input.dtype,
             )
             noisy_model_input = (1.0 - sigmas) * model_input + sigmas * noise
 
@@ -462,7 +466,9 @@ def main(args: Args):
                         "width": args.data_config.width,
                         "num_inference_steps": step,
                     }
-                    with torch.no_grad() and torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16):
+                    with torch.no_grad() and torch.amp.autocast(
+                        device_type="cuda", dtype=torch.bfloat16
+                    ):
                         log_validation(
                             pipe=pipe,
                             args=args,

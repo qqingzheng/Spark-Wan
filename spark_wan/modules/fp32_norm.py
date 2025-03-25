@@ -1,4 +1,5 @@
 import torch.nn as nn
+
 from diffusers.models.normalization import RMSNorm
 from diffusers.utils import is_torch_npu_available, is_torch_version
 

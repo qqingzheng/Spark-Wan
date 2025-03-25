@@ -1,5 +1,5 @@
 import sys
-import copy
+
 
 sys.path.append(".")
 
@@ -7,44 +7,44 @@ import argparse
 import logging
 import math
 import os
-from pathlib import Path
 
-import diffusers
 import torch
 import torch.distributed as dist
 import transformers
-from diffusers.image_processor import VaeImageProcessor
+from spark_wan.models.discriminator_wan import WanDiscriminator
+from spark_wan.parrallel.env import setup_sequence_parallel_group
+from spark_wan.training_utils.fsdp2_utils import (
+    load_model_state,
+    load_optimizer_state,
+    load_state,
+    prepare_fsdp_model,
+    save_state,
+    unwrap_model,
+)
+from spark_wan.training_utils.gan_utils import calculate_adaptive_weight, hinge_d_loss
+from spark_wan.training_utils.input_process import encode_prompt
+from spark_wan.training_utils.load_dataset import load_easyvideo_dataset
+from spark_wan.training_utils.load_model import (
+    DistributedDataParallel,
+    WanTransformerBlock,
+    load_model,
+    replace_rmsnorm_with_fp32,
+)
+from spark_wan.training_utils.load_optimizer import get_optimizer
+from spark_wan.training_utils.train_config import Args
+from torch.amp import GradScaler
+from tqdm.auto import tqdm
+
+import diffusers
 from diffusers import (
     UniPCMultistepScheduler,
     WanPipeline,
 )
+from diffusers.image_processor import VaeImageProcessor
 from diffusers.optimization import get_scheduler
 from diffusers.training_utils import cast_training_params, free_memory, set_seed
-from diffusers.utils import check_min_version, is_wandb_available, export_to_video
-from torch.amp import GradScaler
-from tqdm.auto import tqdm
+from diffusers.utils import check_min_version, export_to_video, is_wandb_available
 
-from spark_wan.models.discriminator_wan import WanDiscriminator
-from spark_wan.training_utils.gan_utils import calculate_adaptive_weight, hinge_d_loss
-from spark_wan.training_utils.load_dataset import load_easyvideo_dataset
-from spark_wan.training_utils.load_model import (
-    load_model,
-    replace_rmsnorm_with_fp32,
-    DistributedDataParallel,
-    WanTransformerBlock,
-)
-from spark_wan.training_utils.load_optimizer import get_optimizer
-from spark_wan.training_utils.fsdp2_utils import (
-    prepare_fsdp_model,
-    load_model_state,
-    load_optimizer_state,
-    load_state,
-    save_state,
-    unwrap_model,
-)
-from spark_wan.training_utils.input_process import encode_prompt
-from spark_wan.parrallel.env import setup_sequence_parallel_group
-from spark_wan.training_utils.train_config import Args
 
 if is_wandb_available():
     import wandb
@@ -87,7 +87,6 @@ def main(args: Args):
     if global_rank == 0:
         if args.output_dir is not None:
             os.makedirs(args.output_dir, exist_ok=True)
-    logging_dir = Path(args.output_dir, args.logging_dir)
 
     # Mixed precision training
     weight_dtype = torch.float32
@@ -222,7 +221,9 @@ def main(args: Args):
     # Resume optimizer state from checkpoint
     if args.training_config.resume_from_checkpoint:
         load_optimizer_state(
-            optimizer, args.training_config.resume_from_checkpoint, is_fsdp=args.model_config.fsdp_transformer
+            optimizer,
+            args.training_config.resume_from_checkpoint,
+            is_fsdp=args.model_config.fsdp_transformer,
         )
 
     # Setup gradient scaler
@@ -243,7 +244,7 @@ def main(args: Args):
         train_batch_size=args.training_config.train_batch_size,
         dataloader_num_workers=args.data_config.dataloader_num_workers,
         dp_rank=dp_rank,
-        dp_size=dp_size
+        dp_size=dp_size,
     )
 
     # Initialize tracker
@@ -262,9 +263,11 @@ def main(args: Args):
         len(train_dataloader) / args.training_config.gradient_accumulation_steps
     )
     if args.training_config.max_train_steps is None:
-        args.training_config.max_train_steps = args.training_config.num_train_epochs * num_update_steps_per_epoch
+        args.training_config.max_train_steps = (
+            args.training_config.num_train_epochs * num_update_steps_per_epoch
+        )
         overrode_max_train_steps = True
-        
+
     lr_scheduler = get_scheduler(
         args.training_config.lr_scheduler,
         optimizer=optimizer,
@@ -291,13 +294,19 @@ def main(args: Args):
         len(train_dataloader) / args.training_config.gradient_accumulation_steps
     )
     if overrode_max_train_steps:
-        args.training_config.max_train_steps = args.training_config.num_train_epochs * num_update_steps_per_epoch
+        args.training_config.max_train_steps = (
+            args.training_config.num_train_epochs * num_update_steps_per_epoch
+        )
     # Afterwards we recalculate our number of training epochs
-    args.training_config.num_train_epochs = math.ceil(args.training_config.max_train_steps / num_update_steps_per_epoch)
+    args.training_config.num_train_epochs = math.ceil(
+        args.training_config.max_train_steps / num_update_steps_per_epoch
+    )
 
     # Train!
     total_batch_size = (
-        args.training_config.train_batch_size * dp_size * args.training_config.gradient_accumulation_steps
+        args.training_config.train_batch_size
+        * dp_size
+        * args.training_config.gradient_accumulation_steps
     )
     num_trainable_parameters = sum(
         param.numel() for model in params_to_optimize for param in model["params"]
@@ -307,11 +316,15 @@ def main(args: Args):
     print(f"  Num trainable parameters = {num_trainable_parameters}")
     print(f"  Num batches each epoch = {len(train_dataloader)}")
     print(f"  Num epochs = {args.training_config.num_train_epochs}")
-    print(f"  Instantaneous batch size per device = {args.training_config.train_batch_size}")
+    print(
+        f"  Instantaneous batch size per device = {args.training_config.train_batch_size}"
+    )
     print(
         f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}"
     )
-    print(f"  Gradient accumulation steps = {args.training_config.gradient_accumulation_steps}")
+    print(
+        f"  Gradient accumulation steps = {args.training_config.gradient_accumulation_steps}"
+    )
     print(f"  Total optimization steps = {args.training_config.max_train_steps}")
     first_epoch = 0
     initial_global_step = global_step
@@ -457,8 +470,13 @@ def main(args: Args):
                 model_pred, start_timestep, latents_student, return_dict=False
             )[0]
 
-            if args.step_distill_config.is_gan_distill:  # If training with discriminator
-                if step % args.step_distill_config.disc_interval == 0 or step < args.step_distill_config.disc_start:
+            if (
+                args.step_distill_config.is_gan_distill
+            ):  # If training with discriminator
+                if (
+                    step % args.step_distill_config.disc_interval == 0
+                    or step < args.step_distill_config.disc_start
+                ):
                     unwrap_model(discriminator).requires_grad_(False)
                     rec_loss = args.step_distill_config.distance_weight * torch.sum(
                         torch.pow((latents_student - latents_teacher), 2)
@@ -475,10 +493,12 @@ def main(args: Args):
                             rec_loss,
                             g_loss,
                             [
-                                unwrap_model(transformer).base_model.blocks[-1]
+                                unwrap_model(transformer)
+                                .base_model.blocks[-1]
                                 .ffn.net[2]
                                 .lora_A.default.weight,
-                                unwrap_model(transformer).base_model.blocks[-1]
+                                unwrap_model(transformer)
+                                .base_model.blocks[-1]
                                 .ffn.net[2]
                                 .lora_B.default.weight,
                             ],
@@ -486,7 +506,12 @@ def main(args: Args):
                     else:
                         adaptive_disc_weight = torch.tensor(0)
                         g_loss = torch.tensor(0)
-                    loss = rec_loss + adaptive_disc_weight * args.step_distill_config.disc_weight * g_loss
+                    loss = (
+                        rec_loss
+                        + adaptive_disc_weight
+                        * args.step_distill_config.disc_weight
+                        * g_loss
+                    )
                     scaler.scale(g_loss).backward()
                     torch.nn.utils.clip_grad_norm_(
                         transformer_lora_parameters, args.training_config.max_grad_norm
@@ -536,7 +561,10 @@ def main(args: Args):
             # Log to tracker
             if global_rank == 0:
                 if args.step_distill_config.is_gan_distill:
-                    if step % args.step_distill_config.disc_interval == 0 or step < args.step_distill_config.disc_start:
+                    if (
+                        step % args.step_distill_config.disc_interval == 0
+                        or step < args.step_distill_config.disc_start
+                    ):
                         logs = {
                             "gen_loss": loss.detach().cpu().item(),
                             "adaptive_disc_weight": adaptive_disc_weight.detach()
@@ -588,7 +616,10 @@ def main(args: Args):
             del loss
             free_memory()
 
-            if global_step % args.validation_config.validation_steps == 0 or global_step == 1:
+            if (
+                global_step % args.validation_config.validation_steps == 0
+                or global_step == 1
+            ):
                 print(f"Validation {global_rank}")
                 noise_scheduler_valid = UniPCMultistepScheduler(
                     prediction_type="flow_prediction",
@@ -720,13 +751,14 @@ def log_validation(
 
     return videos
 
+
 if __name__ == "__main__":
     from omegaconf import OmegaConf
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     args = parser.parse_args()
-    
+
     config = OmegaConf.load(args.config)
     schema = OmegaConf.structured(Args)
     conf = OmegaConf.merge(schema, config)
