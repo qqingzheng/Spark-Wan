@@ -65,7 +65,7 @@ step_distill_config:
   guidance_scale_max: 8.0
   guidance_scale_min: 4.0
   is_gan_distill: true
-  disc_interval: 1
+  disc_interval: 2
   disc_start: 0
   distance_weight: 0.0
   disc_weight: 1.0

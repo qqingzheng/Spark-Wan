@@ -1,11 +1,11 @@
-output_dir: 1_3B_32_16_UniPC_GAN
+output_dir: 1_3B_32_16_UniPC_only_GAN_lr_1e-6_beta1_0
 logging_dir: logs
 seed: 42
 
 report_to:
   wandb: true
   project_name: Spark-Wan
-  wandb_name: 1_3B_32_16_UniPC_GAN
+  wandb_name: 1_3B_32_16_UniPC_only_GAN_lr_1e-6_beta1_0
   wandb_notes: ""
 
 parallel_config:
@@ -50,10 +50,10 @@ training_config:
   num_train_epochs: 10
   gradient_checkpointing: true
   mixed_precision: fp16
-  learning_rate: 0.00001
+  learning_rate: 0.000001
   lr_scheduler: constant
   optimizer: adamw
-  adam_beta1: 0.9
+  adam_beta1: 0.0
   adam_beta2: 0.99
   adam_weight_decay: 0.0001
   adam_epsilon: 1e-08
@@ -65,8 +65,8 @@ step_distill_config:
   guidance_scale_max: 8.0
   guidance_scale_min: 4.0
   is_gan_distill: true
-  disc_interval: 1
+  disc_interval: 2
   disc_start: 0
-  distance_weight: 0.5
+  distance_weight: 0.0
   disc_weight: 1.0
   scheduler_type: UniPC

@@ -111,12 +111,14 @@ class StepDistillConfig:
     guidance_scale_max: float = field(default=8.0)
     guidance_scale_min: float = field(default=4.0)
     is_gan_distill: bool = field(default=False)
-    disc_interval: int = field(default=1)
+    disc_interval: int = field(default=2)
     disc_start: int = field(default=0)
     distance_weight: float = field(default=1.0)
     disc_weight: float = field(default=1.0)
     scheduler_type: str = field(default="UniPC")
-
+    discriminator_copy_num_layers: int = field(default=4)
+    disc_gradient_checkpointing: bool = field(default=False)
+    
 @dataclass
 class SelfLayerDistillConfig:
     layers_idx: List[int] = field(default_factory=list)

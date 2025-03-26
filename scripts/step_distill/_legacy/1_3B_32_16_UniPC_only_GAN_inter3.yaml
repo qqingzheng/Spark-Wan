@@ -1,11 +1,11 @@
-output_dir: 1_3B_32_16_UniPC_GAN
+output_dir: 1_3B_32_16_UniPC_only_GAN_inter3
 logging_dir: logs
 seed: 42
 
 report_to:
   wandb: true
   project_name: Spark-Wan
-  wandb_name: 1_3B_32_16_UniPC_GAN
+  wandb_name: 1_3B_32_16_UniPC_only_GAN_inter3
   wandb_notes: ""
 
 parallel_config:
@@ -39,7 +39,7 @@ validation_config:
   validation_prompt: "A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, a long red dress, and black boots, and carries a black purse. She wears sunglasses and red lipstick. She walks confidently and casually. The street is damp and reflective, creating a mirror effect of the colorful lights. Many pedestrians walk about."
   validation_prompt_separator: ":::"
   num_validation_videos: 1
-  log_teacher_sample: false
+  log_teacher_sample: true
 
 training_config:
   resume_from_checkpoint: null
@@ -65,8 +65,8 @@ step_distill_config:
   guidance_scale_max: 8.0
   guidance_scale_min: 4.0
   is_gan_distill: true
-  disc_interval: 2
+  disc_interval: 4
   disc_start: 0
-  distance_weight: 1.0
+  distance_weight: 0.0
   disc_weight: 1.0
   scheduler_type: UniPC

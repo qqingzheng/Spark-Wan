@@ -126,7 +126,7 @@ def main(args: Args):
 
     if args.step_distill_config.is_gan_distill:
         model_config = transformer.config
-        model_config["num_layers"] = 4
+        model_config["num_layers"] = args.step_distill_config.discriminator_copy_num_layers
         model_config["cnn_dropout"] = 0.0
         discriminator = WanDiscriminator(
             **model_config,
@@ -142,6 +142,9 @@ def main(args: Args):
             f"DISC: Successfully load {len(pretrained_checkpoint) - len(missing_keys)}/{len(pretrained_checkpoint)} keys!"
         )
         discriminator = replace_rmsnorm_with_fp32(discriminator)
+        
+        if args.step_distill_config.disc_gradient_checkpointing:
+            discriminator.enable_gradient_checkpointing()
 
         if args.model_config.fsdp_discriminator:
             prepare_fsdp_model(
@@ -213,11 +216,9 @@ def main(args: Args):
         params_to_optimize=params_to_optimize,
     )
     if args.step_distill_config.is_gan_distill:
-        disc_params_to_optimize = filter(
-            lambda p: p.requires_grad, discriminator.parameters()
-        )
+        disc_params = filter(lambda p: p.requires_grad, discriminator.parameters())
         disc_params_with_lr = {
-            "params": disc_params_to_optimize,
+            "params": disc_params,
             "lr": args.training_config.learning_rate,
         }
         disc_params_to_optimize = [disc_params_with_lr]
@@ -485,15 +486,16 @@ def main(args: Args):
             if (
                 args.step_distill_config.is_gan_distill
             ):  # If training with discriminator
-                if (
-                    step % args.step_distill_config.disc_interval != 0
+                is_generator_step = (
+                    step % args.step_distill_config.disc_interval == 0
                     or step < args.step_distill_config.disc_start
-                ):
+                )
+                if is_generator_step:
                     unwrap_model(discriminator).requires_grad_(False)
 
                     if args.step_distill_config.distance_weight > 0:
-                        rec_loss = torch.sum(
-                            torch.pow((latents_student - latents_teacher), 2)
+                        rec_loss = torch.mean(
+                            torch.abs((latents_student - latents_teacher), 2)
                         )
                     else:  # No distance loss
                         rec_loss = torch.tensor(0.0)
@@ -506,24 +508,7 @@ def main(args: Args):
                             return_dict=False,
                         )
                         g_loss = -torch.mean(score_student)
-                        if args.step_distill_config.distance_weight > 0:
-                            adaptive_disc_weight = calculate_adaptive_weight(
-                                rec_loss,
-                                g_loss,
-                                [
-                                    unwrap_model(transformer)
-                                    .base_model.blocks[-1]
-                                    .ffn.net[2]
-                                    .lora_A.default.weight,
-                                    unwrap_model(transformer)
-                                    .base_model.blocks[-1]
-                                    .ffn.net[2]
-                                    .lora_B.default.weight,
-                                ],
-                            )
-                        else:
-                            # No distance loss, so we use a constant weight
-                            adaptive_disc_weight = torch.tensor(1.0)
+                        adaptive_disc_weight = torch.tensor(1.0)
                     else:
                         adaptive_disc_weight = torch.tensor(0.0)
                         g_loss = torch.tensor(0.0)
@@ -556,10 +541,12 @@ def main(args: Args):
                     loss = hinge_d_loss(score_teacher, score_student)
                     scaler.scale(loss).backward()
                     torch.nn.utils.clip_grad_norm_(
-                        disc_params_to_optimize, args.training_config.max_grad_norm
+                        disc_params, args.training_config.max_grad_norm
                     )
                     scaler.step(disc_optimizer)
-            else:
+            else: # No gan
+                adaptive_disc_weight = torch.tensor(0.0)
+
                 rec_loss = torch.sum(
                     torch.abs(latents_student.float() - latents_teacher.float())
                 )
@@ -581,21 +568,19 @@ def main(args: Args):
             # Log to tracker
             if global_rank == 0:
                 if args.step_distill_config.is_gan_distill:
-                    if (
-                        step % args.step_distill_config.disc_interval == 0
-                        or step < args.step_distill_config.disc_start
-                    ):
+                    if is_generator_step:
                         logs = {
                             "gen_loss": loss.detach().cpu().item(),
-                            "adaptive_disc_weight": adaptive_disc_weight.detach()
-                            .cpu()
-                            .item(),
+                            "rec_loss": rec_loss.detach().cpu().item(),
+                            "g_loss": g_loss.detach().cpu().item(),
+                            "adaptive_disc_weight": adaptive_disc_weight.detach().cpu().item(),
                         }
                         progress_bar.set_postfix(**logs)
                         wandb.log(logs)
                     else:
                         logs = {
                             "disc_loss": loss.detach().cpu().item(),
+                            "adaptive_disc_weight": adaptive_disc_weight.detach().cpu().item(),
                             "score_teacher": score_teacher.mean().detach().cpu().item(),
                             "score_student": score_student.mean().detach().cpu().item(),
                         }

@@ -146,8 +146,6 @@ class WanDiscriminator(WanTransformer3DModel):
             nn.Conv3d(256, 1, kernel_size=(3, 3, 3), stride=1, padding=1),
         )
 
-        self.gradient_checkpointing = False
-
     def forward(
         self,
         hidden_states: torch.Tensor,
