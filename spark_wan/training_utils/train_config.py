@@ -59,6 +59,7 @@ class TrainingConfig:
     train_batch_size: int = field(default=4)
     num_train_epochs: int = field(default=1)
     gradient_checkpointing: bool = field(default=True)
+    disc_gradient_checkpointing: bool = field(default=False)
     mixed_precision: str = field(
         default="bf16",
         metadata={"choices": ["no", "fp16", "bf16"]},
@@ -117,9 +118,10 @@ class StepDistillConfig:
     disc_weight: float = field(default=1.0)
     scheduler_type: str = field(default="UniPC")
     discriminator_copy_num_layers: int = field(default=4)
-    disc_gradient_checkpointing: bool = field(default=False)
     adaptive_weight: bool = field(default=False)
     reduce_func: str = field(default="mean")
+    discriminator_head_type: str = field(default="complex")
+    discriminator_dropout: float = field(default=0.0)
 
 @dataclass
 class SelfLayerDistillConfig:

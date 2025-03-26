@@ -16,7 +16,10 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
+import torch.distributed as dist
 from spark_wan.models.transformer_wan import WanTransformer3DModel
+from spark_wan.parrallel.env import get_sequence_parallel_group
+from spark_wan.parrallel.sp_modules import SplitAndScatter, Gather
 
 from diffusers.configuration_utils import register_to_config
 from diffusers.models.normalization import FP32LayerNorm
@@ -98,6 +101,7 @@ class WanDiscriminator(WanTransformer3DModel):
         added_kv_proj_dim: Optional[int] = None,
         rope_max_seq_len: int = 1024,
         cnn_dropout: float = 0.0,
+        head_type: str = "complex",
         **kwargs,
     ) -> None:
         super().__init__(
@@ -118,33 +122,50 @@ class WanDiscriminator(WanTransformer3DModel):
             rope_max_seq_len,
             is_partial_layer=True,
         )
-
-        self.dis_head = nn.Sequential(
-            nn.Conv3d(
-                num_attention_heads
-                * attention_head_dim
-                // (patch_size[0] * patch_size[1] * patch_size[2]),
-                512,
-                kernel_size=(3, 3, 3),
-                stride=1,
-                padding=1,
-            ),
-            nn.SiLU(True),
-            nn.Dropout(cnn_dropout),
-            nn.Conv3d(512, 512, kernel_size=(3, 3, 3), stride=2, padding=1),
-            nn.GroupNorm(32, 512),
-            nn.SiLU(True),
-            nn.Dropout(cnn_dropout),
-            nn.Conv3d(512, 256, kernel_size=(3, 3, 3), stride=1, padding=1),
-            nn.GroupNorm(32, 256),
-            nn.SiLU(True),
-            nn.Dropout(cnn_dropout),
-            nn.Conv3d(256, 256, kernel_size=(3, 3, 3), stride=2, padding=1),
-            nn.GroupNorm(32, 256),
-            nn.SiLU(True),
-            nn.Dropout(cnn_dropout),
-            nn.Conv3d(256, 1, kernel_size=(3, 3, 3), stride=1, padding=1),
-        )
+        if head_type == "complex":
+            self.dis_head = nn.Sequential(
+                nn.Conv3d(
+                    num_attention_heads
+                    * attention_head_dim
+                    // (patch_size[0] * patch_size[1] * patch_size[2]),
+                    512,
+                    kernel_size=(3, 3, 3),
+                    stride=1,
+                    padding=1,
+                ),
+                nn.SiLU(True),
+                nn.Dropout(cnn_dropout),
+                nn.Conv3d(512, 512, kernel_size=(3, 3, 3), stride=2, padding=1),
+                nn.GroupNorm(32, 512),
+                nn.SiLU(True),
+                nn.Dropout(cnn_dropout),
+                nn.Conv3d(512, 256, kernel_size=(3, 3, 3), stride=1, padding=1),
+                nn.GroupNorm(32, 256),
+                nn.SiLU(True),
+                nn.Dropout(cnn_dropout),
+                nn.Conv3d(256, 256, kernel_size=(3, 3, 3), stride=2, padding=1),
+                nn.GroupNorm(32, 256),
+                nn.SiLU(True),
+                nn.Dropout(cnn_dropout),
+                nn.Conv3d(256, 1, kernel_size=(3, 3, 3), stride=1, padding=1),
+            )
+        elif head_type == "simple":
+            self.dis_head = nn.Sequential(
+                nn.Conv3d(
+                    num_attention_heads
+                    * attention_head_dim
+                    // (patch_size[0] * patch_size[1] * patch_size[2]),
+                    128,
+                    kernel_size=(4, 4, 4),
+                    stride=2,
+                    padding=1,
+                ),
+                nn.SiLU(True),
+                nn.Dropout(cnn_dropout),
+                nn.Conv3d(128, 1, kernel_size=(4, 4, 4), stride=2, padding=1),
+            )
+        else:
+            raise ValueError(f"Invalid head type: {head_type}")
 
     def forward(
         self,
@@ -180,6 +201,34 @@ class WanDiscriminator(WanTransformer3DModel):
         hidden_states = self.patch_embedding(hidden_states)
         hidden_states = hidden_states.flatten(2).transpose(1, 2)
 
+        sequence_parallel_group = get_sequence_parallel_group()
+        if sequence_parallel_group:
+            sequence_parallel_group_size = dist.get_world_size(sequence_parallel_group)
+
+        if (
+            sequence_parallel_group
+            and hidden_states.size(1) % sequence_parallel_group_size != 0
+        ):
+            raise ValueError(
+                "hidden_states.size(1) % sequence_parallel_group_size != 0"
+            )
+        if (
+            sequence_parallel_group
+            and encoder_hidden_states.size(1) % sequence_parallel_group_size != 0
+        ):
+            raise ValueError(
+                "encoder_hidden_states.size(1) % sequence_parallel_group_size != 0"
+            )
+        if sequence_parallel_group:
+            hidden_states = SplitAndScatter.apply(
+                sequence_parallel_group, hidden_states, 1
+            )  # b s d -> b s/p d
+
+        if sequence_parallel_group:
+            encoder_hidden_states = SplitAndScatter.apply(
+                sequence_parallel_group, encoder_hidden_states, 1
+            )  # b s d -> b s/p d
+        
         temb, timestep_proj, encoder_hidden_states, encoder_hidden_states_image = (
             self.condition_embedder(
                 timestep, encoder_hidden_states, encoder_hidden_states_image
@@ -208,6 +257,8 @@ class WanDiscriminator(WanTransformer3DModel):
                     hidden_states, encoder_hidden_states, timestep_proj, rotary_emb
                 )
 
+        hidden_states = Gather.apply(sequence_parallel_group, hidden_states, 1)
+        
         # GAN Distill Need
         hidden_states = hidden_states.reshape(
             batch_size, num_frames, height, width, -1

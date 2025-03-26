@@ -1,11 +1,11 @@
-output_dir: 1_3B_32_16_UniPC_GAN_adaptive_weight
+output_dir: 1_3B_32_16_UniPC_GAN_adaptive_weight_0.3dropout
 logging_dir: logs
 seed: 42
 
 report_to:
   wandb: true
   project_name: Spark-Wan
-  wandb_name: 1_3B_32_16_UniPC_GAN_adaptive_weight
+  wandb_name: 1_3B_32_16_UniPC_GAN_adaptive_weight_0.3dropout
   wandb_notes: ""
 
 parallel_config:
@@ -72,3 +72,4 @@ step_distill_config:
   scheduler_type: UniPC
   adaptive_weight: true
   reduce_func: sum
+  discriminator_dropout: 0.3

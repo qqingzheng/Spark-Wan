@@ -1,11 +1,11 @@
-output_dir: 1_3B_32_16_UniPC_GAN_adaptive_weight
+output_dir: 1_3B_32_16_UniPC_GAN_adaptive_weight_0.5dist
 logging_dir: logs
 seed: 42
 
 report_to:
   wandb: true
   project_name: Spark-Wan
-  wandb_name: 1_3B_32_16_UniPC_GAN_adaptive_weight
+  wandb_name: 1_3B_32_16_UniPC_GAN_adaptive_weight_0.5dist
   wandb_notes: ""
 
 parallel_config:
@@ -49,6 +49,7 @@ training_config:
   train_batch_size: 1
   num_train_epochs: 10
   gradient_checkpointing: true
+  disc_gradient_checkpointing: true
   mixed_precision: fp16
   learning_rate: 0.00001
   lr_scheduler: constant
@@ -68,7 +69,7 @@ step_distill_config:
   disc_interval: 2
   disc_start: 0
   distance_weight: 1.0
-  disc_weight: 1.0
+  disc_weight: 0.5
   scheduler_type: UniPC
   adaptive_weight: true
   reduce_func: sum

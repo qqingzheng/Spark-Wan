@@ -132,7 +132,8 @@ def main(args: Args):
         model_config["num_layers"] = (
             args.step_distill_config.discriminator_copy_num_layers
         )
-        model_config["cnn_dropout"] = 0.0
+        model_config["cnn_dropout"] = args.step_distill_config.discriminator_dropout
+        model_config["head_type"] = args.step_distill_config.discriminator_head_type
         discriminator = WanDiscriminator(
             **model_config,
         )
@@ -148,7 +149,7 @@ def main(args: Args):
         )
         discriminator = replace_rmsnorm_with_fp32(discriminator)
 
-        if args.step_distill_config.disc_gradient_checkpointing:
+        if args.training_config.disc_gradient_checkpointing:
             discriminator.enable_gradient_checkpointing()
 
         if args.model_config.fsdp_discriminator:
@@ -524,6 +525,8 @@ def main(args: Args):
                         g_loss = -torch.mean(score_student)
 
                         if args.step_distill_config.adaptive_weight:
+                            if args.model_config.fsdp_transformer:
+                                transformer.set_reshard_after_backward(False)
                             adaptive_disc_weight = calculate_adaptive_weight(
                                 rec_loss,
                                 g_loss,
@@ -538,6 +541,8 @@ def main(args: Args):
                                     .lora_B.default.weight,
                                 ],
                             )
+                            if args.model_config.fsdp_transformer:
+                                transformer.set_reshard_after_backward(True)
                         else:
                             adaptive_disc_weight = torch.tensor(1.0)
                     else:

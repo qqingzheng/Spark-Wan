@@ -8,36 +8,8 @@ import torch
 from spark_wan.training_utils.fsdp2_utils import prepare_fsdp_model
 from spark_wan.training_utils.load_model import replace_rmsnorm_with_fp32, load_model
 
-def init_distributed_env():
-    torch.distributed.init_process_group(backend="nccl")
-    local_rank = torch.distributed.get_rank()
-    torch.cuda.set_device(local_rank)
-
-
-def cleanup_distributed_env():
-    torch.distributed.destroy_process_group()
-
-
-init_distributed_env()
 weight_dtype = torch.float16
 
-# lora_target_modules = [
-#         "ffn.net.2",
-# ]
-# tokenizer, text_encoder, transformer, vae = load_model(
-#     pretrained_model_name_or_path="/storage/ysh/Ckpts/Wan2.1-T2V-1.3B-Diffusers/",
-#     compile_transformer=False,
-#     fsdp_transformer=True,
-#     fsdp_text_encoder=False,
-#     weight_dtype=weight_dtype,
-#     device="cuda",
-#     is_train_lora=True,
-#     lora_rank=8,
-#     lora_alpha=16,
-#     lora_dropout=0.1,
-#     lora_target_modules=lora_target_modules,
-#     pretrained_lora_path=None,
-# )
 lora_target_modules = [
     "ffn.net.2",
 ]
@@ -69,14 +41,6 @@ class DummyDiscriminator(torch.nn.Module):
 discriminator = DummyDiscriminator()
 discriminator = discriminator.to("cuda", dtype=weight_dtype)
 
-prepare_fsdp_model(
-    transformer,
-    shard_conditions=[lambda n, m: isinstance(m, WanTransformerBlock)],
-    cpu_offload=False,
-    reshard_after_forward=False,
-    weight_dtype=weight_dtype,
-)
-
 transformer.disable_adapter_layers()
 input_hidden_states = torch.randn(1, 16, 5, 16, 16, device="cuda", dtype=weight_dtype)
 for i in range(2):
@@ -99,11 +63,4 @@ student_output = transformer(
 
 loss = torch.sum(torch.abs(student_output - teacher_output))
 score = torch.sum(discriminator(student_output.flatten(start_dim=1)))
-transformer.set_reshard_after_backward(False)
-torch.autograd.grad(loss, transformer.base_model.blocks[-1].ffn.net[2].lora_A.default.weight, retain_graph=True)
-transformer.set_reshard_after_backward(True)
-torch.autograd.grad(loss, transformer.base_model.blocks[-1].ffn.net[2].lora_A.default.weight, retain_graph=True)
-
-# torch.autograd.grad(score, transformer.base_model.blocks[-1].ffn.net[2].lora_A.default.weight, retain_graph=True)
-# calculate_adaptive_weight(loss, loss, last_layer=[transformer.base_model.blocks[-1].ffn.net[2].lora_A.default.weight])
-cleanup_distributed_env()
+print(torch.autograd.grad(loss, transformer.base_model.blocks[-1].ffn.net[2].lora_A.default.weight, retain_graph=True))
