@@ -8,6 +8,7 @@ def calculate_adaptive_weight(nll_loss, g_loss, last_layer=None):
 
     d_weight_final = 0
     for layer in last_layer:
+        print(nll_loss, layer)
         nll_grads = torch.autograd.grad(nll_loss, layer, retain_graph=True)[0]
         g_grads = torch.autograd.grad(g_loss, layer, retain_graph=True)[0]
         d_weight = torch.norm(nll_grads) / (torch.norm(g_grads) + 1e-6)

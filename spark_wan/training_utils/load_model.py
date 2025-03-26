@@ -39,7 +39,7 @@ def load_model(
     lora_target_modules: Optional[List[str]] = None,
     pretrained_lora_path: Optional[str] = None,
     find_unused_parameters: bool = False,
-    reshard_after_forward: bool = True,  # Zero3
+    reshard_after_forward: bool = False,  # Zero3
 ) -> Tuple[AutoTokenizer, UMT5EncoderModel, WanTransformer3DModel, AutoencoderKLWan]:
 
     # Load tokenizer

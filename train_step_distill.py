@@ -122,11 +122,16 @@ def main(args: Args):
         lora_dropout=args.model_config.lora_dropout,
         lora_target_modules=lora_target_modules,
         pretrained_lora_path=args.model_config.pretrained_lora_path,
+        reshard_after_forward=args.parallel_config.reshard_after_forward,
     )
+    # Make sure the reshard_after_forward is not True when using adaptive weight.
+    # assert not (args.parallel_config.reshard_after_forward and args.step_distill_config.adaptive_weight)
 
     if args.step_distill_config.is_gan_distill:
         model_config = transformer.config
-        model_config["num_layers"] = args.step_distill_config.discriminator_copy_num_layers
+        model_config["num_layers"] = (
+            args.step_distill_config.discriminator_copy_num_layers
+        )
         model_config["cnn_dropout"] = 0.0
         discriminator = WanDiscriminator(
             **model_config,
@@ -142,7 +147,7 @@ def main(args: Args):
             f"DISC: Successfully load {len(pretrained_checkpoint) - len(missing_keys)}/{len(pretrained_checkpoint)} keys!"
         )
         discriminator = replace_rmsnorm_with_fp32(discriminator)
-        
+
         if args.step_distill_config.disc_gradient_checkpointing:
             discriminator.enable_gradient_checkpointing()
 
@@ -494,8 +499,17 @@ def main(args: Args):
                     unwrap_model(discriminator).requires_grad_(False)
 
                     if args.step_distill_config.distance_weight > 0:
-                        rec_loss = torch.mean(
-                            torch.abs((latents_student - latents_teacher), 2)
+                        if args.step_distill_config.reduce_func == "sum":
+                            reduce_func = torch.sum
+                        elif args.step_distill_config.reduce_func == "mean":
+                            reduce_func = torch.mean
+                        else:
+                            raise ValueError(
+                                f"Invalid reduce function: {args.step_distill_config.reduce_func}"
+                            )
+
+                        rec_loss = reduce_func(
+                            torch.abs(latents_student - latents_teacher)
                         )
                     else:  # No distance loss
                         rec_loss = torch.tensor(0.0)
@@ -508,7 +522,24 @@ def main(args: Args):
                             return_dict=False,
                         )
                         g_loss = -torch.mean(score_student)
-                        adaptive_disc_weight = torch.tensor(1.0)
+
+                        if args.step_distill_config.adaptive_weight:
+                            adaptive_disc_weight = calculate_adaptive_weight(
+                                rec_loss,
+                                g_loss,
+                                last_layer=[
+                                    unwrap_model(transformer)
+                                    .base_model.blocks[-1]
+                                    .ffn.net[2]
+                                    .lora_A.default.weight,
+                                    unwrap_model(transformer)
+                                    .base_model.blocks[-1]
+                                    .ffn.net[2]
+                                    .lora_B.default.weight,
+                                ],
+                            )
+                        else:
+                            adaptive_disc_weight = torch.tensor(1.0)
                     else:
                         adaptive_disc_weight = torch.tensor(0.0)
                         g_loss = torch.tensor(0.0)
@@ -544,7 +575,7 @@ def main(args: Args):
                         disc_params, args.training_config.max_grad_norm
                     )
                     scaler.step(disc_optimizer)
-            else: # No gan
+            else:  # No gan
                 adaptive_disc_weight = torch.tensor(0.0)
 
                 rec_loss = torch.sum(
@@ -573,14 +604,18 @@ def main(args: Args):
                             "gen_loss": loss.detach().cpu().item(),
                             "rec_loss": rec_loss.detach().cpu().item(),
                             "g_loss": g_loss.detach().cpu().item(),
-                            "adaptive_disc_weight": adaptive_disc_weight.detach().cpu().item(),
+                            "adaptive_disc_weight": adaptive_disc_weight.detach()
+                            .cpu()
+                            .item(),
                         }
                         progress_bar.set_postfix(**logs)
                         wandb.log(logs)
                     else:
                         logs = {
                             "disc_loss": loss.detach().cpu().item(),
-                            "adaptive_disc_weight": adaptive_disc_weight.detach().cpu().item(),
+                            "adaptive_disc_weight": adaptive_disc_weight.detach()
+                            .cpu()
+                            .item(),
                             "score_teacher": score_teacher.mean().detach().cpu().item(),
                             "score_student": score_student.mean().detach().cpu().item(),
                         }

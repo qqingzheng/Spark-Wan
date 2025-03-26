@@ -118,7 +118,9 @@ class StepDistillConfig:
     scheduler_type: str = field(default="UniPC")
     discriminator_copy_num_layers: int = field(default=4)
     disc_gradient_checkpointing: bool = field(default=False)
-    
+    adaptive_weight: bool = field(default=False)
+    reduce_func: str = field(default="mean")
+
 @dataclass
 class SelfLayerDistillConfig:
     layers_idx: List[int] = field(default_factory=list)
