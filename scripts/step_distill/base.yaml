@@ -66,3 +66,4 @@ step_distill_config:
   disc_start: 0
   distance_weight: 1.0
   disc_weight: 1.0
+  adaptive_weight: false

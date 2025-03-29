@@ -35,6 +35,8 @@ from spark_wan.training_utils.train_config import Args
 from torch.amp import GradScaler
 from tqdm.auto import tqdm
 
+from peft import LoraConfig, get_peft_model
+
 import diffusers
 from diffusers import (
     UniPCMultistepScheduler,
@@ -148,16 +150,27 @@ def main(args: Args):
             f"DISC: Successfully load {len(pretrained_checkpoint) - len(missing_keys)}/{len(pretrained_checkpoint)} keys!"
         )
         discriminator = replace_rmsnorm_with_fp32(discriminator)
-
         if args.training_config.disc_gradient_checkpointing:
             discriminator.enable_gradient_checkpointing()
-
+        
+        if args.model_config.is_train_disc_lora:
+            discriminator.requires_grad_(False)
+            discriminator.dis_head.requires_grad_(True)
+            lora_config = LoraConfig(
+                r=args.model_config.disc_lora_rank,
+                target_modules=lora_target_modules,
+                lora_alpha=args.model_config.disc_lora_alpha,
+                lora_dropout=args.model_config.disc_lora_dropout,
+                init_lora_weights=True,
+            )
+            discriminator = get_peft_model(discriminator, lora_config)
+        
         if args.model_config.fsdp_discriminator:
             prepare_fsdp_model(
                 discriminator,
                 shard_conditions=[lambda n, m: isinstance(m, WanTransformerBlock)],
                 cpu_offload=False,
-                reshard_after_forward=False,
+                reshard_after_forward=True, # Discriminator need to reshard after forward.
                 weight_dtype=weight_dtype,
             )
         else:
@@ -544,7 +557,7 @@ def main(args: Args):
                             if args.model_config.fsdp_transformer:
                                 transformer.set_reshard_after_backward(True)
                         else:
-                            adaptive_disc_weight = torch.tensor(1.0)
+                            adaptive_disc_weight = torch.tensor(args.step_distill_config.default_disc_weight)
                     else:
                         adaptive_disc_weight = torch.tensor(0.0)
                         g_loss = torch.tensor(0.0)
@@ -556,6 +569,7 @@ def main(args: Args):
                         * g_loss
                     )
                     scaler.scale(loss).backward()
+                    scaler.unscale_(optimizer)
                     torch.nn.utils.clip_grad_norm_(
                         transformer_lora_parameters, args.training_config.max_grad_norm
                     )
@@ -576,6 +590,7 @@ def main(args: Args):
                     )
                     loss = hinge_d_loss(score_teacher, score_student)
                     scaler.scale(loss).backward()
+                    scaler.unscale_(disc_optimizer)
                     torch.nn.utils.clip_grad_norm_(
                         disc_params, args.training_config.max_grad_norm
                     )
@@ -588,6 +603,7 @@ def main(args: Args):
                 )
                 loss = rec_loss
                 scaler.scale(loss).backward()
+                scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(
                     transformer_lora_parameters, args.training_config.max_grad_norm
                 )
@@ -614,7 +630,7 @@ def main(args: Args):
                             .item(),
                         }
                         progress_bar.set_postfix(**logs)
-                        wandb.log(logs)
+                        wandb.log(logs, step=global_step)
                     else:
                         logs = {
                             "disc_loss": loss.detach().cpu().item(),
@@ -625,14 +641,14 @@ def main(args: Args):
                             "score_student": score_student.mean().detach().cpu().item(),
                         }
                         progress_bar.set_postfix(**logs)
-                        wandb.log(logs)
+                        wandb.log(logs, step=global_step)
                 else:
                     logs = {
                         "loss": loss.detach().item(),
                         "lr": lr_scheduler.get_last_lr()[0],
                     }
                     progress_bar.set_postfix(**logs)
-                    wandb.log(logs)
+                    wandb.log(logs, step=global_step)
 
             if global_step % args.training_config.checkpointing_steps == 0:
                 dist.barrier()
@@ -708,7 +724,7 @@ def main(args: Args):
                                 pipe=pipe,
                                 args=args,
                                 pipeline_args=pipeline_args,
-                                epoch=global_step,
+                                global_step=global_step,
                                 phase_name="teacher/teacher_step",
                                 global_rank=global_rank,
                             )
@@ -717,7 +733,7 @@ def main(args: Args):
                                 pipe=pipe,
                                 args=args,
                                 pipeline_args=pipeline_args,
-                                epoch=global_step,
+                                global_step=global_step,
                                 phase_name="teacher/student_step",
                                 global_rank=global_rank,
                             )
@@ -735,8 +751,7 @@ def log_validation(
     pipe,
     args: Args,
     pipeline_args,
-    epoch,
-    is_final_validation: bool = False,
+    global_step: int,
     phase_name="",
     global_rank=0,
 ):
@@ -783,7 +798,8 @@ def log_validation(
                     wandb.Video(filename, caption=f"{i}: {pipeline_args['prompt']}")
                     for i, filename in enumerate(video_filenames)
                 ]
-            }
+            },
+            step=global_step,
         )
 
     del pipe

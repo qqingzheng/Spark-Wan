@@ -370,11 +370,11 @@ def main(args: Args):
             loss = flow_loss
 
             scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(
                 transformer_lora_parameters, args.training_config.max_grad_norm
             )
             scaler.step(optimizer)
-            optimizer.step()
             optimizer.zero_grad(set_to_none=True)
             scaler.update()
             lr_scheduler.step()

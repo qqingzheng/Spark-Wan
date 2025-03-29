@@ -36,6 +36,11 @@ class ModelConfig:
     lora_alpha: float = field(default=128)
     lora_dropout: float = field(default=0.0)
     lora_target_modules: Optional[str] = field(default=None)
+    is_train_disc_lora: bool = field(default=False)
+    disc_lora_rank: int = field(default=64)
+    disc_lora_alpha: float = field(default=128)
+    disc_lora_dropout: float = field(default=0.0)
+    disc_target_modules: Optional[str] = field(default=None)
     flow_shift: float = field(default=8.0)
 
 
@@ -122,6 +127,7 @@ class StepDistillConfig:
     reduce_func: str = field(default="mean")
     discriminator_head_type: str = field(default="complex")
     discriminator_dropout: float = field(default=0.0)
+    default_disc_weight: float = field(default=1e5)
 
 @dataclass
 class SelfLayerDistillConfig:
