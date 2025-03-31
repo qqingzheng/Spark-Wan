@@ -26,6 +26,7 @@ class ModelConfig:
     pretrained_model_name_or_path: Optional[str] = field(
         default=None,
     )
+    transformer_subfolder: str = field(default="transformer")
     compile_transformer: bool = field(default=False)
     fsdp_transformer: bool = field(default=False)
     fsdp_discriminator: bool = field(default=False)

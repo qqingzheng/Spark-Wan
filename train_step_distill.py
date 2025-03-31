@@ -125,6 +125,7 @@ def main(args: Args):
         lora_target_modules=lora_target_modules,
         pretrained_lora_path=args.model_config.pretrained_lora_path,
         reshard_after_forward=args.parallel_config.reshard_after_forward,
+        transformer_subfolder=args.model_config.transformer_subfolder,
     )
     # Make sure the reshard_after_forward is not True when using adaptive weight.
     # assert not (args.parallel_config.reshard_after_forward and args.step_distill_config.adaptive_weight)
@@ -451,40 +452,58 @@ def main(args: Args):
                 noisy_sample_init = teacher_noise_scheduler.add_noise(
                     model_input, noise, start_timesteps
                 )
-            guidance_scale = (
-                torch.rand(1).to(device, dtype=weight_dtype)
-                * (guidance_scale_max - guidance_scale_min)
-                + guidance_scale_min
-            )
+            if guidance_scale_max == 0 and guidance_scale_min == 0:
+                guidance_scale = 0
+            else:
+                guidance_scale = (
+                    torch.rand(1).to(device, dtype=weight_dtype)
+                    * (guidance_scale_max - guidance_scale_min)
+                    + guidance_scale_min
+                )
 
             # Teacher step
             unwrap_model(transformer).disable_adapter_layers()
             latents_teacher = noisy_sample_init
             with torch.no_grad():
                 for t in teacher_timesteps:
-                    timestep = torch.tensor([t], device=device).repeat(bsz * 2)
-                    latents_teacher_input = teacher_noise_scheduler.scale_model_input(
-                        latents_teacher, t
-                    )
-                    latents_teacher_input = torch.concatenate(
-                        [latents_teacher_input, latents_teacher_input], dim=0
-                    )
-                    input_context = torch.concatenate(
-                        [prompt_embeds, uncond_context], dim=0
-                    )
-                    model_pred = transformer(
-                        hidden_states=latents_teacher_input,
-                        timestep=timestep,
-                        encoder_hidden_states=input_context,
-                        return_dict=False,
-                    )[0]
-                    cond_pred, uncond_pred = model_pred[:bsz], model_pred[bsz:]
-                    noise_pred = (
-                        guidance_scale * cond_pred + (1 - guidance_scale) * uncond_pred
-                    )
-                    latents_teacher = teacher_noise_scheduler.step(
-                        noise_pred, t, latents_teacher, return_dict=False
-                    )[0]
+                    if guidance_scale != 0:
+                        timestep = torch.tensor([t], device=device).repeat(bsz * 2)
+                        latents_teacher_input = teacher_noise_scheduler.scale_model_input(
+                            latents_teacher, t
+                        )
+                        latents_teacher_input = torch.concatenate(
+                            [latents_teacher_input, latents_teacher_input], dim=0
+                        )
+                        input_context = torch.concatenate(
+                            [prompt_embeds, uncond_context], dim=0
+                        )
+                        model_pred = transformer(
+                            hidden_states=latents_teacher_input,
+                            timestep=timestep,
+                            encoder_hidden_states=input_context,
+                            return_dict=False,
+                        )[0]
+                        cond_pred, uncond_pred = model_pred[:bsz], model_pred[bsz:]
+                        noise_pred = (
+                            guidance_scale * cond_pred + (1 - guidance_scale) * uncond_pred
+                        )
+                        latents_teacher = teacher_noise_scheduler.step(
+                            noise_pred, t, latents_teacher, return_dict=False
+                        )[0]
+                    else:
+                        timestep = torch.tensor([t], device=device).repeat(bsz)
+                        latents_teacher_input = teacher_noise_scheduler.scale_model_input(
+                            latents_teacher, t
+                        )
+                        model_pred = transformer(
+                            hidden_states=latents_teacher_input,
+                            timestep=timestep,
+                            encoder_hidden_states=prompt_embeds,
+                            return_dict=False,
+                        )[0]
+                        latents_teacher = teacher_noise_scheduler.step(
+                            model_pred, t, latents_teacher, return_dict=False
+                        )[0]
             unwrap_model(transformer).enable_adapter_layers()
 
             # Student step
@@ -711,7 +730,7 @@ def main(args: Args):
                             pipe=pipe,
                             args=args,
                             pipeline_args=pipeline_args,
-                            epoch=global_step,
+                            global_step=global_step,
                             phase_name="student/validation",
                             global_rank=global_rank,
                         )

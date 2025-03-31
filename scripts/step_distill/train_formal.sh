@@ -44,4 +44,4 @@ torchrun \
   --node_rank $NODE_RANK \
   --nnodes $NNODES \
   train_step_distill.py \
-  --config scripts/step_distill/14B_32_16_bf16.yaml
+  --config scripts/step_distill/14B_16_8_bf16_larger_disc_weight.yaml

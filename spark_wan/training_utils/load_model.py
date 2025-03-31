@@ -40,6 +40,7 @@ def load_model(
     pretrained_lora_path: Optional[str] = None,
     find_unused_parameters: bool = False,
     reshard_after_forward: bool = False,  # Zero3
+    transformer_subfolder: str = "transformer"
 ) -> Tuple[AutoTokenizer, UMT5EncoderModel, WanTransformer3DModel, AutoencoderKLWan]:
 
     # Load tokenizer
@@ -53,7 +54,7 @@ def load_model(
 
     # Load transformer
     transformer = WanTransformer3DModel.from_pretrained(
-        pretrained_model_name_or_path, subfolder="transformer"
+        pretrained_model_name_or_path, subfolder=transformer_subfolder
     )
     transformer = replace_rmsnorm_with_fp32(transformer)
 
