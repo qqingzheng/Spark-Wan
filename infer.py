@@ -19,12 +19,16 @@ from tqdm import tqdm
 from safetensors.torch import load_file
 from tools.fp16_monitor import FP16Monitor
 
+# 确保推理确定性
+torch.backends.cudnn.deterministic=True
+torch.backends.cudnn.benchmark=False
+
 dist.init_process_group(backend="nccl")
 torch.cuda.set_device(dist.get_rank())
 sp_group_index, sp_group_local_rank = init_sequence_parallel_group(8)
 weight_dtype = torch.bfloat16
-seed = 2223131212
-flow_shift = 7.0
+seed = 2002
+flow_shift = 5.0
 prompts = [
     "A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, along red dress, and black boots, and carries a black purse. She wears sunglasses and red lipstick. She walks confidently and casually. The street is dampand reflective, creating a mirror effect of thecolorful lights. Many pedestrians walk about.",
     # "Several giant wooly mammoths approach treading through a snowy meadow, their long wooly fur lightly blows in the wind as they walk, snow covered tree sand dramatic snow capped mountains in the distance,mid afternoon lightwith wispy cloud sand a sun high in the distance creates a warm glow, the low camera view is stunning capturing the large furry mammal with beautiful photography, depth of field",
@@ -49,11 +53,11 @@ prompts = [
 ]
 # negative_prompt = ""
 negative_prompt = "Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards"
-steps = 16
-output_video_path = f"output/origin_{steps}_seed_{seed}_flow_{flow_shift}_amp/"
+steps = 32
+output_video_path = f"output/origin_{steps}_seed_{seed}_flow_{flow_shift}5/"
 state_dict_path = None
 # state_dict_path = f"/data/pfs/checkpoints/chestnutlzj/Spark-Wan-16steps/model.safetensors"
-model_path = "/data/pfs/checkpoints/Wan-AI/Wan2.1-T2V-14B-Diffusers/"
+model_path = "/data/pfs/checkpoints/Wan2.1-T2V-14B-Diffusers/"
 
 os.makedirs(os.path.dirname(output_video_path), exist_ok=True)
 vae = AutoencoderKLWan.from_pretrained(

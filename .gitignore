@@ -8,3 +8,4 @@ logs
 **/__pycache__/**
 wandb/
 *.mp4
+*.whl
