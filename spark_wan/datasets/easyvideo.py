@@ -97,20 +97,22 @@ class EasyVideoDataset(Dataset):
     def __getitem__(self, idx):
         try:
             video_reader = decord.VideoReader(self.data[idx]["path"])
+        
+            start = self.data[idx]["cut"][0]
+            video = video_reader.get_batch(
+                list(range(start, start + self.num_frames))
+            ).asnumpy()
+            video = torch.from_numpy(video)  # t h w c
+            video = video[
+                :,
+                self.data[idx]["crop"][2] : self.data[idx]["crop"][3],
+                self.data[idx]["crop"][0] : self.data[idx]["crop"][1],
+                :,
+            ]
+            video = self.transform(video)  # c t h w
+            
         except Exception:  # If loading video failed, return a random video
             return self.__getitem__(random.randint(0, len(self.data) - 1))
 
-        start = self.data[idx]["cut"][0]
-        video = video_reader.get_batch(
-            list(range(start, start + self.num_frames))
-        ).asnumpy()
-        video = torch.from_numpy(video)  # t h w c
-        video = video[
-            :,
-            self.data[idx]["crop"][2] : self.data[idx]["crop"][3],
-            self.data[idx]["crop"][0] : self.data[idx]["crop"][1],
-            :,
-        ]
-        video = self.transform(video)  # c t h w
 
         return {"instance_video": video, "instance_prompt": self.data[idx]["caption"]}
