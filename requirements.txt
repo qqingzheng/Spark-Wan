@@ -11,3 +11,6 @@ opencv-python
 wandb[media]
 torchdata
 omegaconf
+tensorboard
+imageio
+imageio-ffmpeg

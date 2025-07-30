@@ -26,7 +26,12 @@ model_config:
   compile_transformer: false
   fsdp_transformer: true
   fsdp_text_encoder: false
-  is_train_lora: false
+  lora_rank: 128
+  lora_alpha: 256.0
+  lora_dropout: 0.0
+  flow_shift: 8.0
+  is_train_lora: true
+  lora_target_modules: null # which is a hardcode now so is null there.
   
 validation_config:
   validation_steps: 100
