@@ -97,7 +97,7 @@ class TrainingConfig:
     max_seq_len: Optional[int] = field(default=None)
     base_shift: Optional[float] = field(default=None)
     max_shift: Optional[float] = field(default=None)
-
+    weighting_scheme: str = field(default="logit_normal")
 
 @dataclass
 class ParallelConfig:
