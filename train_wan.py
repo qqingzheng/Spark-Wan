@@ -8,12 +8,12 @@ import argparse
 import logging
 import math
 import os
+from typing import Optional
 
 import torch
 import torch.distributed as dist
 import transformers
 from spark_wan.parrallel.env import setup_sequence_parallel_group
-from spark_wan.training_utils.flow_utils import get_sigmas
 from spark_wan.training_utils.fsdp2_utils import (
     load_model_state,
     load_optimizer_state,
@@ -116,14 +116,6 @@ def main(args: Args):
         find_unused_parameters=True,
         reshard_after_forward=args.parallel_config.reshard_after_forward,
     )
-    transformer.requires_grad_(False)
-    assert len(args.self_layer_distill_config.layers_idx) > 0
-    unwrap_model(transformer).set_self_distill_layers(
-        args.self_layer_distill_config.layers_idx
-    )
-    for i in args.self_layer_distill_config.layers_idx:
-        unwrap_model(transformer).blocks[i - 1].requires_grad_(True)
-        unwrap_model(transformer).blocks[i + 1].requires_grad_(True)
 
     # Setup scheduler
     noise_scheduler_valid = UniPCMultistepScheduler(
@@ -134,11 +126,6 @@ def main(args: Args):
     )
     noise_scheduler = FlowMatchEulerDiscreteScheduler()
     noise_scheduler_copy = copy.deepcopy(noise_scheduler)
-
-    # # Make sure the trainable params are in float32.
-    # if args.training_config.mixed_precision == "fp16":
-    #     # only upcast trainable parameters into fp32
-    #     cast_training_params([transformer], dtype=torch.float32)
 
     # Resume model state from checkpoint
     if args.training_config.resume_from_checkpoint:
@@ -322,28 +309,60 @@ def main(args: Args):
             noise = torch.randn_like(model_input)
             bsz = model_input.shape[0]
 
-            # Sample a random timestep for each image
-            # for weighting schemes where we sample timesteps non-uniformly
-            u = compute_density_for_timestep_sampling(
-                weighting_scheme=args.training_config.weighting_scheme,
-                batch_size=bsz,
-                logit_mean=args.training_config.logit_mean,
-                logit_std=args.training_config.logit_std,
-                mode_scale=args.training_config.mode_scale,
+            def calculate_shift(
+                image_seq_len,
+                base_seq_len: int = 256,
+                max_seq_len: int = 4096,
+                base_shift: float = 0.5,
+                max_shift: float = 1.16,
+            ):
+                m = (max_shift - base_shift) / (max_seq_len - base_seq_len)
+                b = base_shift - m * base_seq_len
+                mu = image_seq_len * m + b
+                return mu
+
+            def apply_schedule_shift(
+                sigmas,
+                noise,
+                base_seq_len: Optional[int] = None,
+                max_seq_len: Optional[int] = None,
+                base_shift: Optional[float] = None,
+                max_shift: Optional[float] = None,
+            ):
+                # Resolution-dependent shifting of timestep schedules as per section 5.3.2 of SD3 paper
+                # Resolution-dependent shift value calculation used by official Flux inference implementation
+                image_seq_len = (
+                    noise.shape[-1] * noise.shape[-2] * noise.shape[-3]
+                ) // 4  # patch size 1,2,2
+                mu = calculate_shift(
+                    image_seq_len,
+                    base_seq_len or noise_scheduler_copy.config.base_image_seq_len,
+                    max_seq_len or noise_scheduler_copy.config.max_image_seq_len,
+                    base_shift or noise_scheduler_copy.config.base_shift,
+                    max_shift or noise_scheduler_copy.config.max_shift,
+                )
+                shift = math.exp(mu)
+                sigmas = (sigmas * shift) / (1 + (shift - 1) * sigmas)
+                return sigmas
+
+            sigmas = torch.sigmoid(
+                1.0
+                * torch.randn((bsz,), device=model_input.device, dtype=torch.float32)
             )
-            indices = (u * noise_scheduler_copy.config.num_train_timesteps).long()
-            timesteps = noise_scheduler_copy.timesteps[indices].to(
-                device=model_input.device
+            sigmas = apply_schedule_shift(
+                sigmas,
+                noise,
+                base_seq_len=args.training_config.base_seq_len,
+                max_seq_len=args.training_config.max_seq_len,
+                base_shift=args.training_config.base_shift,
+                max_shift=args.training_config.max_shift,
             )
+            timesteps = sigmas * 1000.0  # rescale to [0, 1000.0)
+            while sigmas.ndim < model_input.ndim:
+                sigmas = sigmas.unsqueeze(-1)
 
             # Add noise according to flow matching.
             # zt = (1 - texp) * x + texp * z1
-            sigmas = get_sigmas(
-                noise_scheduler_copy,
-                timesteps,
-                n_dim=model_input.ndim,
-                dtype=model_input.dtype,
-            )
             noisy_model_input = (1.0 - sigmas) * model_input + sigmas * noise
 
             # Predict the noise residual
@@ -378,30 +397,14 @@ def main(args: Args):
             optimizer.zero_grad(set_to_none=True)
             scaler.update()
             lr_scheduler.step()
-            unwrap_model(transformer).step_alpha_decay(
-                global_step,
-                zero_step=args.self_layer_distill_config.zero_step,
-                scheduler=args.self_layer_distill_config.scheduler,
-                **args.self_layer_distill_config.scheduler_config,
-            )
             progress_bar.update(1)
             global_step += 1
 
             # Log to tracker
             if global_rank == 0:
-                alphas_keys = [
-                    f"alphas/alpha_{i}"
-                    for i in range(len(unwrap_model(transformer).alphas))
-                ]
                 logs = {
                     "flow_loss": flow_loss.detach().item(),
                     "lr": lr_scheduler.get_last_lr()[0],
-                    **{
-                        key: alpha.detach().item()
-                        for key, alpha in zip(
-                            alphas_keys, unwrap_model(transformer).alphas
-                        )
-                    },
                 }
                 wandb.log(logs)
                 progress_bar.set_postfix(**logs)
@@ -437,12 +440,6 @@ def main(args: Args):
                 or global_step == 1
             ):
                 print(f"Validation {global_rank}")
-                noise_scheduler_valid = UniPCMultistepScheduler(
-                    prediction_type="flow_prediction",
-                    use_flow_sigmas=True,
-                    num_train_timesteps=1000,
-                    flow_shift=args.model_config.flow_shift,
-                )
                 pipe = WanPipeline.from_pretrained(
                     args.model_config.pretrained_model_name_or_path,
                     transformer=unwrap_model(transformer),

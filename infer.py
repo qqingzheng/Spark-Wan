@@ -19,7 +19,6 @@ from tqdm import tqdm
 from safetensors.torch import load_file
 from tools.fp16_monitor import FP16Monitor
 
-# 确保推理确定性
 torch.backends.cudnn.deterministic=True
 torch.backends.cudnn.benchmark=False
 

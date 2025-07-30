@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
 import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -20,7 +19,6 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-from peft import PeftModel
 from spark_wan.parrallel.env import get_sequence_parallel_group
 from spark_wan.parrallel.sp_modules import Gather, SplitAndAllToAll, SplitAndScatter
 
@@ -36,13 +34,13 @@ from diffusers.models.embeddings import (
 )
 from diffusers.models.modeling_utils import ModelMixin
 from diffusers.models.normalization import FP32LayerNorm
-from diffusers.training_utils import free_memory
 from diffusers.utils import (
     USE_PEFT_BACKEND,
     logging,
     scale_lora_layers,
     unscale_lora_layers,
 )
+from diffusers.models.cache_utils import CacheMixin
 
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
@@ -384,7 +382,7 @@ class WanTransformerBlock(nn.Module):
 
 
 class WanTransformer3DModel(
-    ModelMixin, ConfigMixin, PeftAdapterMixin, FromOriginalModelMixin
+    ModelMixin, ConfigMixin, PeftAdapterMixin, FromOriginalModelMixin, CacheMixin
 ):
     r"""
     A Transformer model for video-like data used in the Wan model.
@@ -452,16 +450,8 @@ class WanTransformer3DModel(
         image_dim: Optional[int] = None,
         added_kv_proj_dim: Optional[int] = None,
         rope_max_seq_len: int = 1024,
-        is_partial_layer: bool = False,
-        partial_layer_idx: Tuple[int, ...] = None,
-        reserve_layers: int = 0,
-        self_distill_layers_idx: Tuple[int, ...] = None,
     ) -> None:
         super().__init__()
-
-        self.is_partial_layer = is_partial_layer
-        self.self_distill_layers_idx = self_distill_layers_idx
-
         inner_dim = num_attention_heads * attention_head_dim
         out_channels = out_channels or in_channels
         self.inner_dim = inner_dim
@@ -499,150 +489,13 @@ class WanTransformer3DModel(
         )
 
         # 4. Output norm & projection
-        if not self.is_partial_layer:
-            self.norm_out = FP32LayerNorm(inner_dim, eps, elementwise_affine=False)
-            self.proj_out = nn.Linear(inner_dim, out_channels * math.prod(patch_size))
-            self.scale_shift_table = nn.Parameter(
-                torch.randn(1, 2, inner_dim) / inner_dim**0.5
-            )
-
-        self.gradient_checkpointing = False
-
-        self.is_partial_layer = is_partial_layer
-        self.partial_layer_idx = partial_layer_idx
-        self.reserve_layers = reserve_layers
-
-    def load_partial_layers(
-        self,
-        base_layer_idx: Tuple[int, ...],
-        mini_layer_idx: Tuple[int, ...],
-        lora_path: str = None,
-        is_delete_layer: bool = True,
-    ) -> None:
-        logger.info(f"Loading partial layers: {mini_layer_idx} from {lora_path}")
-
-        # Create a mini_transformer and load the weights
-        if lora_path:
-            mini_transformer = copy.deepcopy(self)
-            mini_transformer.set_partial_layers(mini_layer_idx)
-            mini_transformer = PeftModel.from_pretrained(mini_transformer, lora_path)
-            mini_transformer = mini_transformer.merge_and_unload()
-        else:
-            # (250309 YSH) need to be fixed
-            pass
-
-        # Get mini_transformer blocks and update the full model with corresponding layers
-        mini_blocks = mini_transformer.blocks
-        mini_layer_idx = sorted(mini_layer_idx)
-
-        # Replace the full model's blocks with the mini_transformer's corresponding blocks
-        for i, block_idx in enumerate(mini_layer_idx):
-            self.blocks[block_idx] = copy.deepcopy(mini_blocks[i])
-
-        # Delete unnecessary middle layers
-        if is_delete_layer:
-            delete_idx = set(base_layer_idx) - set(mini_layer_idx)
-            self.blocks = nn.ModuleList(
-                [
-                    block
-                    for idx, block in enumerate(self.blocks)
-                    if idx not in delete_idx
-                ]
-            )
-
-        # Clean up resources
-        del mini_blocks
-        del mini_transformer
-        free_memory()
-
-    def set_partial_layers(
-        self,
-        partial_layer_idx: Tuple[int, ...],
-        is_train: bool = True,
-        reserve_layers: int = 0,
-    ) -> None:
-        # Register partial layers
-        logger.info(f"Setting partial layers: {self.partial_layer_idx}")
-        self.is_partial_layer = is_train
-        self.partial_layer_idx = tuple(sorted(partial_layer_idx))
-        self.reserve_layers = reserve_layers
-
-        if reserve_layers > 0:
-            last_idx = self.partial_layer_idx[-1]
-            new_indices = []
-
-            for i in range(1, reserve_layers + 1):
-                new_idx = last_idx + i
-                if new_idx <= self.config.num_layers - 1:
-                    new_indices.append(new_idx)
-
-            self.partial_layer_idx = self.partial_layer_idx + tuple(new_indices)
-
-            for idx in new_indices:
-                for param in self.blocks[idx].parameters():
-                    param.requires_grad = False
-
-        logger.info("Registering partial layers in config.")
-        self.register_to_config(is_partial_layer=self.is_partial_layer)
-        self.register_to_config(partial_layer_idx=self.partial_layer_idx)
-        self.register_to_config(reserve_layers=self.reserve_layers)
-
-        # Store mapping from new block indices to original indices
-        # self.layer_mapping = {new_idx: orig_idx for new_idx, orig_idx in enumerate(self.partial_layer_idx)}
-        self.layer_mapping = {
-            orig_idx: new_idx for new_idx, orig_idx in enumerate(self.partial_layer_idx)
-        }
-
-        # Get mini_transformer blocks
-        self.blocks = nn.ModuleList([self.blocks[i] for i in self.partial_layer_idx])
-
-        # Clean up resources
-        if is_train:
-            self.norm_out = None
-            self.proj_out = None
-            self.scale_shift_table = None
-            del self.norm_out
-            del self.proj_out
-            del self.scale_shift_table
-        free_memory()
-
-    def set_self_distill_layers(
-        self,
-        self_distill_layers_idx: Tuple[int, ...],
-    ) -> None:
-        # Register partial layers
-        logger.info(f"Setting self distill layers: {self.self_distill_layers_idx}")
-        self.self_distill_layers_idx = tuple(sorted(self_distill_layers_idx))
-        self.register_to_config(self_distill_layers_idx=self.self_distill_layers_idx)
-
-        self.alphas = nn.ParameterList(
-            [
-                nn.Parameter(
-                    torch.tensor([1.0], dtype=self.dtype, device=self.device),
-                    requires_grad=False,
-                )
-                for _ in range(len(self.self_distill_layers_idx))
-            ]
+        self.norm_out = FP32LayerNorm(inner_dim, eps, elementwise_affine=False)
+        self.proj_out = nn.Linear(inner_dim, out_channels * math.prod(patch_size))
+        self.scale_shift_table = nn.Parameter(
+            torch.randn(1, 2, inner_dim) / inner_dim**0.5
         )
 
-    def step_alpha_decay(
-        self, step: int, zero_step: int = 1000, scheduler: str = "linear", **kwargs
-    ):
-        step = torch.tensor(step, dtype=self.dtype, device=self.device)
-        zero_step = torch.tensor(zero_step, dtype=self.dtype, device=self.device)
-
-        if scheduler == "linear":
-            if step < zero_step:
-                for alpha in self.alphas:
-                    alpha.copy_((zero_step - step) / zero_step)
-            else:
-                for alpha in self.alphas:
-                    alpha.copy_(0.0)
-        elif scheduler == "step":
-            num_steps = kwargs["num_steps"]
-            w = zero_step / num_steps
-            for alpha in self.alphas:
-                alpha.copy_(1 - torch.floor(step / w) * (1 / num_steps))
+        self.gradient_checkpointing = False
 
     # @torch.compile
     def forward(
@@ -735,117 +588,39 @@ class WanTransformer3DModel(
 
         # 4. Transformer blocks
         if torch.is_grad_enabled() and self.gradient_checkpointing:
-            # For Layer distill
-            reserve_hidden_state_list = []
-            hidden_states_list = []
-            num_blocks = len(self.blocks)
-            alpha_idx = 0
-
             # Main Loop
             for i, block in enumerate(self.blocks):
-                # Self distill: create a path for the hidden_states.
-                if i in (self.self_distill_layers_idx or []):
-                    degrading_hidden_states = self._gradient_checkpointing_func(
-                        block,
-                        hidden_states,
-                        encoder_hidden_states,
-                        timestep_proj,
-                        rotary_emb,
-                    )
-                    hidden_states = degrading_hidden_states * self.alphas[
-                        alpha_idx
-                    ] + hidden_states * (1 - self.alphas[alpha_idx])
-                    alpha_idx += 1
-                else:
-                    hidden_states = self._gradient_checkpointing_func(
-                        block,
-                        hidden_states,
-                        encoder_hidden_states,
-                        timestep_proj,
-                        rotary_emb,
-                    )
-
-                # For Layer distill
-                if output_reserve_states or output_hidden_states:
-                    hidden_states = Gather.apply(
-                        sequence_parallel_group, hidden_states, 1
-                    )
-                if output_reserve_states and i >= num_blocks - self.reserve_layers - 1:
-                    reserve_hidden_state_list.append(hidden_states)
-                if output_hidden_states and i in output_hidden_states_idx:
-                    hidden_states_list.append(hidden_states)
-                if output_reserve_states or output_hidden_states:
-                    if sequence_parallel_group:
-                        hidden_states = SplitAndScatter.apply(
-                            sequence_parallel_group, hidden_states, 1
-                        )
+                hidden_states = self._gradient_checkpointing_func(
+                    block,
+                    hidden_states,
+                    encoder_hidden_states,
+                    timestep_proj,
+                    rotary_emb,
+                )
         else:
-            # For Layer distill
-            reserve_hidden_state_list = []
-            hidden_states_list = []
-            num_blocks = len(self.blocks)
-            alpha_idx = 0
-
             # Main Loop
             for i, block in enumerate(self.blocks):
-                if i in (self.self_distill_layers_idx or []):
-                    degrading_hidden_states = block(
+                # When some block is float32, we need to convert the hidden_states and encoder_hidden_states to float32
+                # and then convert back to the original dtype.
+                if block.scale_shift_table.data.dtype == torch.float32:
+                    origin_dtype = hidden_states.dtype
+                    hidden_states = hidden_states.to(torch.float32)
+                    encoder_hidden_states = encoder_hidden_states.to(torch.float32)
+                    hidden_states = block(
                         hidden_states,
                         encoder_hidden_states,
                         timestep_proj,
                         rotary_emb,
                     )
-                    hidden_states = degrading_hidden_states * self.alphas[
-                        alpha_idx
-                    ] + hidden_states * (1 - self.alphas[alpha_idx])
-                    alpha_idx += 1
+                    hidden_states = hidden_states.to(origin_dtype)
+                    encoder_hidden_states = encoder_hidden_states.to(origin_dtype)
                 else:
-                    # When some block is float32, we need to convert the hidden_states and encoder_hidden_states to float32
-                    # and then convert back to the original dtype.
-                    if block.scale_shift_table.data.dtype == torch.float32:
-                        origin_dtype = hidden_states.dtype
-                        hidden_states = hidden_states.to(torch.float32)
-                        encoder_hidden_states = encoder_hidden_states.to(torch.float32)
-                        hidden_states = block(
-                            hidden_states,
-                            encoder_hidden_states,
-                            timestep_proj,
-                            rotary_emb,
-                        )
-                        hidden_states = hidden_states.to(origin_dtype)
-                        encoder_hidden_states = encoder_hidden_states.to(origin_dtype)
-                    else:
-                        hidden_states = block(
-                            hidden_states,
-                            encoder_hidden_states,
-                            timestep_proj,
-                            rotary_emb,
-                        )
-
-                # For Layer distill
-                if output_reserve_states or output_hidden_states:
-                    hidden_states = Gather.apply(
-                        sequence_parallel_group, hidden_states, 1
+                    hidden_states = block(
+                        hidden_states,
+                        encoder_hidden_states,
+                        timestep_proj,
+                        rotary_emb,
                     )
-                if output_reserve_states and i >= num_blocks - self.reserve_layers - 1:
-                    reserve_hidden_state_list.append(hidden_states)
-                if output_hidden_states and i in output_hidden_states_idx:
-                    hidden_states_list.append(hidden_states)
-                if output_reserve_states or output_hidden_states:
-                    if sequence_parallel_group:
-                        hidden_states = SplitAndScatter.apply(
-                            sequence_parallel_group, hidden_states, 1
-                        )
-
-        if self.is_partial_layer and not output_hidden_states:
-            if output_reserve_states > 0:
-                return {
-                    "sample": reserve_hidden_state_list[-self.reserve_layers - 1],
-                    "reserve_hidden_states": reserve_hidden_state_list,
-                }
-            else:
-                return {"sample": hidden_states, "reserve_hidden_states": []}
-
         # 5. Output norm, projection & unpatchify
         with torch.amp.autocast("cuda", dtype=torch.float32):
             shift, scale = (self.scale_shift_table + temb.unsqueeze(1)).chunk(2, dim=1)

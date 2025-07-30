@@ -29,7 +29,6 @@ class ModelConfig:
     transformer_subfolder: str = field(default="transformer")
     compile_transformer: bool = field(default=False)
     fsdp_transformer: bool = field(default=False)
-    fsdp_discriminator: bool = field(default=False)
     fsdp_text_encoder: bool = field(default=False)
     sp_size: int = field(default=1)
     is_train_lora: bool = field(default=False)
@@ -37,11 +36,6 @@ class ModelConfig:
     lora_alpha: float = field(default=128)
     lora_dropout: float = field(default=0.0)
     lora_target_modules: Optional[str] = field(default=None)
-    is_train_disc_lora: bool = field(default=False)
-    disc_lora_rank: int = field(default=64)
-    disc_lora_alpha: float = field(default=128)
-    disc_lora_dropout: float = field(default=0.0)
-    disc_target_modules: Optional[str] = field(default=None)
     flow_shift: float = field(default=8.0)
 
 
@@ -99,10 +93,10 @@ class TrainingConfig:
     adam_epsilon: float = field(default=1e-08)
     max_grad_norm: float = field(default=1.0)
     # ---- Flow Matching ----
-    weighting_scheme: str = field(default="logit_normal")
-    logit_mean: float = field(default=0.0)
-    logit_std: float = field(default=1.0)
-    mode_scale: float = field(default=1.29)
+    base_seq_len: Optional[int] = field(default=None)
+    max_seq_len: Optional[int] = field(default=None)
+    base_shift: Optional[float] = field(default=None)
+    max_shift: Optional[float] = field(default=None)
 
 
 @dataclass
@@ -130,12 +124,14 @@ class StepDistillConfig:
     discriminator_dropout: float = field(default=0.0)
     default_disc_weight: float = field(default=1e5)
 
+
 @dataclass
 class SelfLayerDistillConfig:
     layers_idx: List[int] = field(default_factory=list)
     scheduler: str = field(default="linear")
     zero_step: int = field(default=1000)
     scheduler_config: Dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class Args:

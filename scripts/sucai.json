@@ -1,6 +1,6 @@
 [
     [
-        "/data/pfs/dataset/",
-        "/data/pfs/code/exist_data.json"
+        "/mnt/data/dataset",
+        "/mnt/data/ysh/Code/Efficient_Model/Wan-Distill/0_video_dataset/sucai.json"
     ]
 ]
