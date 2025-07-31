@@ -26,15 +26,12 @@ def load_easyvideo_dataset(
     dp_rank: int,
     dp_size: int,
 ) -> StatefulDataLoader:
-
     train_dataset = EasyVideoDataset(
         video_size=(height, width),
         num_frames=max_num_frames,
         video_data=json.load(open(instance_data_root)),
     )
-    sampler = StatefulDistributedSampler(
-        train_dataset, rank=dp_rank, num_replicas=dp_size, shuffle=True
-    )
+    sampler = StatefulDistributedSampler(train_dataset, rank=dp_rank, num_replicas=dp_size, shuffle=True)
     train_dataloader = StatefulDataLoader(
         train_dataset,
         batch_size=train_batch_size,

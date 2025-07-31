@@ -60,9 +60,7 @@ def prepare_fsdp_model(
             num_layers_sharded += 1
 
     if num_layers_sharded == 0:
-        raise ValueError(
-            "No layer modules were sharded. Please check if shard conditions are working as expected."
-        )
+        raise ValueError("No layer modules were sharded. Please check if shard conditions are working as expected.")
 
     fully_shard(model, **fsdp_kwargs)
 
@@ -99,12 +97,8 @@ def save_state(
     if not is_fsdp:
         full_optimizer_state_dict = optimizer.state_dict()
     else:
-        options = StateDictOptions(
-            full_state_dict=True, broadcast_from_rank0=True, cpu_offload=True
-        )
-        full_optimizer_state_dict = get_optimizer_state_dict(
-            model=model, optimizers=optimizer, options=options
-        )
+        options = StateDictOptions(full_state_dict=True, broadcast_from_rank0=True, cpu_offload=True)
+        full_optimizer_state_dict = get_optimizer_state_dict(model=model, optimizers=optimizer, options=options)
 
     if dataloader is not None:
         full_dataloader_state_dict = dataloader.state_dict()
@@ -121,18 +115,12 @@ def save_state(
     if dist.get_rank() == 0:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        safetensors.torch.save_file(
-            full_state_dict, os.path.join(output_dir, "model.safetensors")
-        )
+        safetensors.torch.save_file(full_state_dict, os.path.join(output_dir, "model.safetensors"))
         torch.save(training_state, os.path.join(output_dir, "training_state.pth"))
         if len(full_optimizer_state_dict) > 0:  # optimizer is not None
-            torch.save(
-                full_optimizer_state_dict, os.path.join(output_dir, "optimizer.pth")
-            )
+            torch.save(full_optimizer_state_dict, os.path.join(output_dir, "optimizer.pth"))
         if len(full_dataloader_state_dict) > 0:  # dataloader is not None
-            torch.save(
-                full_dataloader_state_dict, os.path.join(output_dir, "dataloader.pth")
-            )
+            torch.save(full_dataloader_state_dict, os.path.join(output_dir, "dataloader.pth"))
         if len(full_sampler_state_dict) > 0:  # sampler is not None
             torch.save(full_sampler_state_dict, os.path.join(output_dir, "sampler.pth"))
 
@@ -140,16 +128,12 @@ def save_state(
             torch.save(full_scaler_state_dict, os.path.join(output_dir, "scaler.pth"))
 
         if len(lr_scheduler_state_dict) > 0:  # lr_scheduler is not None
-            torch.save(
-                lr_scheduler_state_dict, os.path.join(output_dir, "lr_scheduler.pth")
-            )
+            torch.save(lr_scheduler_state_dict, os.path.join(output_dir, "lr_scheduler.pth"))
 
 
 def load_model_state(model, path, device, is_fsdp=False, fsdp_cpu_offload=False):
     """Load FSDP2 state dict from file."""
-    full_state_dict = safetensors.torch.load_file(
-        os.path.join(path, "model.safetensors")
-    )
+    full_state_dict = safetensors.torch.load_file(os.path.join(path, "model.safetensors"))
 
     # # Replace all lora_*.default with lora_* in key
     # keys_to_replace = [
@@ -161,9 +145,7 @@ def load_model_state(model, path, device, is_fsdp=False, fsdp_cpu_offload=False)
     #     del full_state_dict[key]
 
     if is_fsdp:
-        _load_from_full_model_state_dict(
-            model, full_state_dict, device=device, cpu_offload=fsdp_cpu_offload
-        )
+        _load_from_full_model_state_dict(model, full_state_dict, device=device, cpu_offload=fsdp_cpu_offload)
     else:
         model.load_state_dict(full_state_dict, strict=False)
 
@@ -206,9 +188,7 @@ def _load_from_full_model_state_dict(
     for param_name, full_tensor in full_sd.items():
         sharded_meta_param = meta_sharded_sd.get(param_name)
         full_tensor = full_tensor.to(sharded_meta_param.dtype).to(device)
-        if hasattr(sharded_meta_param, "_local_tensor") and isinstance(
-            sharded_meta_param._local_tensor, NF4Tensor
-        ):
+        if hasattr(sharded_meta_param, "_local_tensor") and isinstance(sharded_meta_param._local_tensor, NF4Tensor):
             block_size = sharded_meta_param._local_tensor.block_size
             scaler_block_size = sharded_meta_param._local_tensor.scaler_block_size
             full_tensor = to_nf4(
@@ -225,9 +205,7 @@ def _load_from_full_model_state_dict(
                 raise NotImplementedError(f"only support 1D FSDP but got {mesh.ndim=}")
             shard_mesh_dim = 0
             shard_world_size = mesh.size(shard_mesh_dim)
-            shard_rank = cast(
-                torch.distributed.ProcessGroup, mesh.get_group(shard_mesh_dim)
-            ).rank()
+            shard_rank = cast(torch.distributed.ProcessGroup, mesh.get_group(shard_mesh_dim)).rank()
             chunk = list(torch.chunk(full_tensor, shard_world_size, dim=0))[shard_rank]
             sharded_param = full_tensor.new_zeros(chunk.size())
             sharded_param[: chunk.size(0)].copy_(chunk)

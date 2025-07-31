@@ -50,16 +50,11 @@ def _get_t5_prompt_embeds(
     )
     text_input_ids, mask = text_inputs.input_ids, text_inputs.attention_mask
     seq_lens = mask.gt(0).sum(dim=1).long()
-    prompt_embeds = text_encoder(
-        text_input_ids.to(device), mask.to(device)
-    ).last_hidden_state
+    prompt_embeds = text_encoder(text_input_ids.to(device), mask.to(device)).last_hidden_state
     prompt_embeds = prompt_embeds.to(dtype=dtype, device=device, non_blocking=True)
     prompt_embeds = [u[:v] for u, v in zip(prompt_embeds, seq_lens)]
     prompt_embeds = torch.stack(
-        [
-            torch.cat([u, u.new_zeros(max_sequence_length - u.size(0), u.size(1))])
-            for u in prompt_embeds
-        ],
+        [torch.cat([u, u.new_zeros(max_sequence_length - u.size(0), u.size(1))]) for u in prompt_embeds],
         dim=0,
     )
 

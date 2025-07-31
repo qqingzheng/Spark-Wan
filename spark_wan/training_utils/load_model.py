@@ -42,26 +42,17 @@ def load_model(
     reshard_after_forward: bool = False,  # Zero3
     transformer_subfolder: str = "transformer",
 ) -> Tuple[AutoTokenizer, UMT5EncoderModel, WanTransformer3DModel, AutoencoderKLWan]:
-
     # Load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(
-        pretrained_model_name_or_path, subfolder="tokenizer"
-    )
+    tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path, subfolder="tokenizer")
     # Load text encoder
-    text_encoder = UMT5EncoderModel.from_pretrained(
-        pretrained_model_name_or_path, subfolder="text_encoder"
-    )
+    text_encoder = UMT5EncoderModel.from_pretrained(pretrained_model_name_or_path, subfolder="text_encoder")
 
     # Load transformer
-    transformer = WanTransformer3DModel.from_pretrained(
-        pretrained_model_name_or_path, subfolder=transformer_subfolder
-    )
+    transformer = WanTransformer3DModel.from_pretrained(pretrained_model_name_or_path, subfolder=transformer_subfolder)
     transformer = replace_rmsnorm_with_fp32(transformer)
 
     # Load vae
-    vae = AutoencoderKLWan.from_pretrained(
-        pretrained_model_name_or_path, subfolder="vae"
-    )
+    vae = AutoencoderKLWan.from_pretrained(pretrained_model_name_or_path, subfolder="vae")
 
     # Setup models
     text_encoder.requires_grad_(False)
@@ -85,9 +76,7 @@ def load_model(
         if pretrained_lora_path is None:
             transformer = get_peft_model(transformer, transformer_lora_config)
         else:
-            transformer = PeftModel.from_pretrained(
-                transformer, pretrained_lora_path, is_trainable=True
-            )
+            transformer = PeftModel.from_pretrained(transformer, pretrained_lora_path, is_trainable=True)
 
     # Compile transformer
     if compile_transformer:

@@ -39,9 +39,7 @@ class Gather(torch.autograd.Function):
             return None, grad_output, None, None
 
         gather_dim_size = grad_output.size(ctx.gather_dim) // ctx.group_world_size
-        split_grad = torch.split(grad_output, gather_dim_size, dim=ctx.gather_dim)[
-            ctx.group_local_rank
-        ].contiguous()
+        split_grad = torch.split(grad_output, gather_dim_size, dim=ctx.gather_dim)[ctx.group_local_rank].contiguous()
         split_grad *= ctx.group_world_size
 
         return (None, split_grad, None, None)
@@ -66,9 +64,7 @@ class SplitAndScatter(torch.autograd.Function):
         each_part_size = dim_size // ctx.group_world_size
 
         # Split the tensor and get the local part
-        return torch.split(x, split_size_or_sections=each_part_size, dim=dim)[
-            ctx.group_local_rank
-        ].contiguous()
+        return torch.split(x, split_size_or_sections=each_part_size, dim=dim)[ctx.group_local_rank].contiguous()
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -86,9 +82,7 @@ class SplitAndScatter(torch.autograd.Function):
 
 class SplitAndAllToAll(torch.autograd.Function):
     @staticmethod
-    def forward(
-        ctx, group: dist.ProcessGroup, x: torch.Tensor, split_dim: int, gather_dim: int
-    ):
+    def forward(ctx, group: dist.ProcessGroup, x: torch.Tensor, split_dim: int, gather_dim: int):
         if group is None:
             ctx.group = None
             return x
@@ -103,16 +97,10 @@ class SplitAndAllToAll(torch.autograd.Function):
         ctx.split_size = x.size(split_dim) // ctx.group_world_size
         ctx.gather_size = x.size(gather_dim) * ctx.group_world_size
 
-        input_tensor = list(
-            x.chunk(ctx.group_world_size, dim=split_dim)
-        )  # b s/p d -> p b s/p d/p
-        input_tensor = [
-            x_chunk.contiguous() for x_chunk in input_tensor
-        ]  # Important to ensure contiguous
+        input_tensor = list(x.chunk(ctx.group_world_size, dim=split_dim))  # b s/p d -> p b s/p d/p
+        input_tensor = [x_chunk.contiguous() for x_chunk in input_tensor]  # Important to ensure contiguous
 
-        output_tensor = [
-            torch.empty_like(input_tensor[0]) for _ in range(ctx.group_world_size)
-        ]
+        output_tensor = [torch.empty_like(input_tensor[0]) for _ in range(ctx.group_world_size)]
 
         dist.all_to_all(output_tensor, input_tensor, group=group)
 
@@ -132,9 +120,7 @@ class SplitAndAllToAll(torch.autograd.Function):
         input_tensor = list(grad_output.chunk(group_world_size, dim=gather_dim))
         input_tensor = [x.contiguous() for x in input_tensor]
 
-        output_tensor = [
-            torch.empty_like(input_tensor[0]) for _ in range(group_world_size)
-        ]
+        output_tensor = [torch.empty_like(input_tensor[0]) for _ in range(group_world_size)]
         dist.all_to_all(output_tensor, input_tensor, group=group)
         grad_input = torch.cat(output_tensor, dim=split_dim).contiguous()
         return (None, grad_input, None, None)

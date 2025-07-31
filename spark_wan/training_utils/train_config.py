@@ -99,6 +99,7 @@ class TrainingConfig:
     max_shift: Optional[float] = field(default=None)
     weighting_scheme: str = field(default="logit_normal")
 
+
 @dataclass
 class ParallelConfig:
     sp_size: int = field(default=1)

@@ -1,26 +1,27 @@
 import sys
 
+
 sys.path.append(".")
 
 import os
 
 import torch
 import torch.distributed as dist
-from diffusers import AutoencoderKLWan
+from peft import LoraConfig, get_peft_model
+from safetensors.torch import load_file
+from spark_wan.models.transformer_wan import WanTransformer3DModel
+from spark_wan.parrallel.env import init_sequence_parallel_group
+from spark_wan.training_utils.load_model import replace_rmsnorm_with_fp32
+from tqdm import tqdm
+
+from diffusers import AutoencoderKLWan, WanPipeline
+from diffusers.image_processor import VaeImageProcessor
 from diffusers.schedulers import UniPCMultistepScheduler
 from diffusers.utils import export_to_video
-from diffusers import WanPipeline
-from diffusers.image_processor import VaeImageProcessor
-from spark_wan.models.transformer_wan import WanTransformer3DModel
-from spark_wan.training_utils.load_model import replace_rmsnorm_with_fp32
-from spark_wan.parrallel.env import init_sequence_parallel_group
-from peft import LoraConfig, get_peft_model
-from tqdm import tqdm
-from safetensors.torch import load_file
-from tools.fp16_monitor import FP16Monitor
 
-torch.backends.cudnn.deterministic=True
-torch.backends.cudnn.benchmark=False
+
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 dist.init_process_group(backend="nccl")
 torch.cuda.set_device(dist.get_rank())
@@ -82,12 +83,8 @@ if state_dict_path is not None:
         "ffn.net.0.proj",
         "ffn.net.2",
     ]
-    lora_config = LoraConfig(
-        r=64,
-        lora_alpha=128,
-        target_modules=lora_target_modules
-    )
-    transformer = get_peft_model(transformer, lora_config)  
+    lora_config = LoraConfig(r=64, lora_alpha=128, target_modules=lora_target_modules)
+    transformer = get_peft_model(transformer, lora_config)
     state_dict = load_file(
         state_dict_path,
         device="cpu",
