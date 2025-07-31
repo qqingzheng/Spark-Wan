@@ -51,6 +51,7 @@ def prepare_fsdp_model(
         param_dtype=weight_dtype,
         reduce_dtype=weight_dtype,
         output_dtype=weight_dtype,
+        cast_forward_inputs=False
     )
 
     num_layers_sharded = 0

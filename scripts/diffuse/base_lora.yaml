@@ -30,7 +30,7 @@ model_config:
   lora_rank: 128
   lora_alpha: 256.0
   lora_dropout: 0.0
-  lora_target_modules: null # which is a hardcode now so is null there.
+  lora_target_modules: ["q_proj"]
   flow_shift: 8.0
   use_dynamic_shifting: false
 
@@ -52,7 +52,7 @@ training_config:
   train_batch_size: 1
   num_train_epochs: 10
   gradient_checkpointing: true
-  mixed_precision: fp16
+  mixed_precision: bf16
   learning_rate: 0.00001
   lr_scheduler: constant
   optimizer: adamw

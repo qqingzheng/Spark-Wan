@@ -92,7 +92,7 @@ def load_model(
             weight_dtype=weight_dtype,
         )
     else:
-        transformer = transformer.to(device)
+        transformer = transformer.to(device, dtype=weight_dtype)
         transformer = DistributedDataParallel(
             transformer,
             device_ids=[device],
@@ -107,6 +107,6 @@ def load_model(
             weight_dtype=weight_dtype,
         )
     else:
-        text_encoder.to(device, non_blocking=True)
+        text_encoder.to(device, non_blocking=True, dtype=weight_dtype)
 
     return tokenizer, text_encoder, transformer, vae

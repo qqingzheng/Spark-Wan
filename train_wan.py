@@ -362,14 +362,13 @@ def main(args: Args):
             noisy_model_input = (1.0 - sigmas) * model_input + sigmas * noise
 
             # Predict the noise residual
-            with torch.amp.autocast(device_type="cuda", dtype=weight_dtype):
-                model_pred = transformer(
-                    hidden_states=noisy_model_input,
-                    timestep=timesteps,
-                    encoder_hidden_states=prompt_embeds,
-                    is_flash_attn=args.training_config.is_flash_attn,
-                    return_dict=False,
-                )[0]
+            model_pred = transformer(
+                hidden_states=noisy_model_input,
+                timestep=timesteps,
+                encoder_hidden_states=prompt_embeds,
+                is_flash_attn=args.training_config.is_flash_attn,
+                return_dict=False,
+            )[0]
 
             weighting = compute_loss_weighting_for_sd3(
                 weighting_scheme=args.training_config.weighting_scheme, sigmas=sigmas

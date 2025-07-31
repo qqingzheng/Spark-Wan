@@ -48,7 +48,7 @@ training_config:
   train_batch_size: 1
   num_train_epochs: 10
   gradient_checkpointing: true
-  mixed_precision: fp16
+  mixed_precision: bf16
   learning_rate: 0.00001
   lr_scheduler: constant
   optimizer: adamw
