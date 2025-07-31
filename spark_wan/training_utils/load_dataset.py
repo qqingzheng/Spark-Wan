@@ -1,7 +1,7 @@
 import json
 
 import torch
-from spark_wan.datasets.easyvideo import EasyVideoDataset
+from spark_wan.datasets.dataloader import EasyVideoDataset
 from torchdata.stateful_dataloader import StatefulDataLoader
 from torchdata.stateful_dataloader.sampler import StatefulDistributedSampler
 

@@ -40,14 +40,6 @@ from diffusers.utils import USE_PEFT_BACKEND, logging, scale_lora_layers, unscal
 from diffusers.utils.torch_utils import maybe_allow_in_graph
 
 
-try:
-    import sys
-
-    sys.path.append("../")
-    from modules.attention import flash_attention
-except Exception:
-    from spark_wan.modules.attention import flash_attention
-
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
 
@@ -63,8 +55,6 @@ class WanAttnProcessor2_0:
         encoder_hidden_states: Optional[torch.Tensor] = None,
         attention_mask: Optional[torch.Tensor] = None,
         rotary_emb: Optional[torch.Tensor] = None,
-        is_flash_attn=False,
-        cross_attn=False,
     ) -> torch.Tensor:
         encoder_hidden_states_img = None
         if attn.add_k_proj is not None:
@@ -134,38 +124,21 @@ class WanAttnProcessor2_0:
             key_img = key_img.unflatten(2, (attn.heads, -1)).transpose(1, 2)
             value_img = value_img.unflatten(2, (attn.heads, -1)).transpose(1, 2)
 
-            if is_flash_attn:
-                hidden_states_img = flash_attention(
-                    query.transpose(1, 2), key_img.transpose(1, 2), value_img.transpose(1, 2), k_lens=None
-                )
-                hidden_states_img = hidden_states_img.flatten(2, 3)
-            else:
-                hidden_states_img = F.scaled_dot_product_attention(
-                    query, key_img, value_img, attn_mask=None, dropout_p=0.0, is_causal=False
-                )
-                hidden_states_img = hidden_states_img.transpose(1, 2).flatten(2, 3)
+            hidden_states_img = F.scaled_dot_product_attention(
+                query,
+                key_img,
+                value_img,
+                attn_mask=None,
+                dropout_p=0.0,
+                is_causal=False,
+            )
+            hidden_states_img = hidden_states_img.transpose(1, 2).flatten(2, 3)
             hidden_states_img = hidden_states_img.type_as(query)
 
-        if is_flash_attn:
-            if cross_attn:
-                k_lens = None
-                window_size = None
-            else:
-                k_lens = torch.tensor([query.shape[2]])
-                window_size = (-1, -1)
-            hidden_states = flash_attention(
-                q=query.transpose(1, 2),
-                k=key.transpose(1, 2),
-                v=value.transpose(1, 2),
-                k_lens=k_lens,
-                window_size=window_size,
-            )
-            hidden_states = hidden_states.flatten(2, 3)
-        else:
-            hidden_states = F.scaled_dot_product_attention(
-                query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False
-            )
-            hidden_states = hidden_states.transpose(1, 2).flatten(2, 3)
+        hidden_states = F.scaled_dot_product_attention(
+            query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False
+        )
+        hidden_states = hidden_states.transpose(1, 2).flatten(2, 3)
         hidden_states = hidden_states.type_as(query)
 
         if hidden_states_img is not None:
@@ -371,7 +344,6 @@ class WanTransformerBlock(nn.Module):
         encoder_hidden_states: torch.Tensor,
         temb: torch.Tensor,
         rotary_emb: torch.Tensor,
-        is_flash_attn=False,
     ) -> torch.Tensor:
         with torch.amp.autocast("cuda", dtype=torch.float32):
             shift_msa, scale_msa, gate_msa, c_shift_msa, c_scale_msa, c_gate_msa = (
@@ -380,9 +352,7 @@ class WanTransformerBlock(nn.Module):
 
         # 1. Self-attention
         norm_hidden_states = (self.norm1(hidden_states.float()) * (1 + scale_msa) + shift_msa).type_as(hidden_states)
-        attn_output = self.attn1(
-            hidden_states=norm_hidden_states, rotary_emb=rotary_emb, is_flash_attn=is_flash_attn, cross_attn=False
-        )
+        attn_output = self.attn1(hidden_states=norm_hidden_states, rotary_emb=rotary_emb)
         with torch.amp.autocast("cuda", dtype=torch.float32):
             hidden_states = (hidden_states.float() + attn_output * gate_msa).type_as(hidden_states)
 
@@ -391,8 +361,6 @@ class WanTransformerBlock(nn.Module):
         attn_output = self.attn2(
             hidden_states=norm_hidden_states,
             encoder_hidden_states=encoder_hidden_states,
-            is_flash_attn=is_flash_attn,
-            cross_attn=True,
         )
         hidden_states = hidden_states + attn_output
 
@@ -529,7 +497,6 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrigi
         encoder_hidden_states_image: Optional[torch.Tensor] = None,
         return_dict: bool = True,
         attention_kwargs: Optional[Dict[str, Any]] = None,
-        is_flash_attn=True,
     ) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
         if attention_kwargs is not None:
             attention_kwargs = attention_kwargs.copy()
@@ -585,11 +552,11 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrigi
         if torch.is_grad_enabled() and self.gradient_checkpointing:
             for block in self.blocks:
                 hidden_states = self._gradient_checkpointing_func(
-                    block, hidden_states, encoder_hidden_states, timestep_proj, rotary_emb, is_flash_attn
+                    block, hidden_states, encoder_hidden_states, timestep_proj, rotary_emb
                 )
         else:
             for block in self.blocks:
-                hidden_states = block(hidden_states, encoder_hidden_states, timestep_proj, rotary_emb, is_flash_attn)
+                hidden_states = block(hidden_states, encoder_hidden_states, timestep_proj, rotary_emb)
 
         # 5. Output norm, projection & unpatchify
         with torch.amp.autocast("cuda", dtype=torch.float32):

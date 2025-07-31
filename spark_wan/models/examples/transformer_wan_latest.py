@@ -16,11 +16,8 @@ import math
 from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
-import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-from spark_wan.parrallel.env import get_sequence_parallel_group
-from spark_wan.parrallel.sp_modules import Gather, SplitAndAllToAll, SplitAndScatter
 
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.loaders import FromOriginalModelMixin, PeftAdapterMixin
@@ -40,14 +37,6 @@ from diffusers.utils import USE_PEFT_BACKEND, logging, scale_lora_layers, unscal
 from diffusers.utils.torch_utils import maybe_allow_in_graph
 
 
-try:
-    import sys
-
-    sys.path.append("../")
-    from modules.attention import flash_attention
-except Exception:
-    from spark_wan.modules.attention import flash_attention
-
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
 
@@ -63,8 +52,6 @@ class WanAttnProcessor2_0:
         encoder_hidden_states: Optional[torch.Tensor] = None,
         attention_mask: Optional[torch.Tensor] = None,
         rotary_emb: Optional[torch.Tensor] = None,
-        is_flash_attn=False,
-        cross_attn=False,
     ) -> torch.Tensor:
         encoder_hidden_states_img = None
         if attn.add_k_proj is not None:
@@ -75,35 +62,18 @@ class WanAttnProcessor2_0:
         if encoder_hidden_states is None:
             encoder_hidden_states = hidden_states
 
-        query = attn.to_q(hidden_states)  # b, s, h*d
-        key = attn.to_k(encoder_hidden_states)  # b, s, h*d
-        value = attn.to_v(encoder_hidden_states)  # b, s, h*d
-
-        # Pad head
-        sequence_parallel_group = get_sequence_parallel_group()
-        if sequence_parallel_group:
-            sequence_parallel_group_size = dist.get_world_size(sequence_parallel_group)
-            if attn.heads % sequence_parallel_group_size != 0:
-                raise ValueError(
-                    f"Heads {attn.heads} must be divisible by the number of GPUs in sequence parallel group {sequence_parallel_group_size}"
-                )
+        query = attn.to_q(hidden_states)
+        key = attn.to_k(encoder_hidden_states)
+        value = attn.to_v(encoder_hidden_states)
 
         if attn.norm_q is not None:
             query = attn.norm_q(query)
         if attn.norm_k is not None:
             key = attn.norm_k(key)
 
-        if sequence_parallel_group:
-            query = SplitAndAllToAll.apply(sequence_parallel_group, query, 2, 1)
-            key = SplitAndAllToAll.apply(sequence_parallel_group, key, 2, 1)
-            value = SplitAndAllToAll.apply(sequence_parallel_group, value, 2, 1)
-            query = torch.unflatten(query, 2, (attn.heads // sequence_parallel_group_size, -1)).transpose(1, 2)
-            key = torch.unflatten(key, 2, (attn.heads // sequence_parallel_group_size, -1)).transpose(1, 2)
-            value = torch.unflatten(value, 2, (attn.heads // sequence_parallel_group_size, -1)).transpose(1, 2)
-        else:
-            query = torch.unflatten(query, 2, (attn.heads, -1)).transpose(1, 2)
-            key = torch.unflatten(key, 2, (attn.heads, -1)).transpose(1, 2)
-            value = torch.unflatten(value, 2, (attn.heads, -1)).transpose(1, 2)
+        query = query.unflatten(2, (attn.heads, -1)).transpose(1, 2)
+        key = key.unflatten(2, (attn.heads, -1)).transpose(1, 2)
+        value = value.unflatten(2, (attn.heads, -1)).transpose(1, 2)
 
         if rotary_emb is not None:
 
@@ -134,45 +104,20 @@ class WanAttnProcessor2_0:
             key_img = key_img.unflatten(2, (attn.heads, -1)).transpose(1, 2)
             value_img = value_img.unflatten(2, (attn.heads, -1)).transpose(1, 2)
 
-            if is_flash_attn:
-                hidden_states_img = flash_attention(
-                    query.transpose(1, 2), key_img.transpose(1, 2), value_img.transpose(1, 2), k_lens=None
-                )
-                hidden_states_img = hidden_states_img.flatten(2, 3)
-            else:
-                hidden_states_img = F.scaled_dot_product_attention(
-                    query, key_img, value_img, attn_mask=None, dropout_p=0.0, is_causal=False
-                )
-                hidden_states_img = hidden_states_img.transpose(1, 2).flatten(2, 3)
+            hidden_states_img = F.scaled_dot_product_attention(
+                query, key_img, value_img, attn_mask=None, dropout_p=0.0, is_causal=False
+            )
+            hidden_states_img = hidden_states_img.transpose(1, 2).flatten(2, 3)
             hidden_states_img = hidden_states_img.type_as(query)
 
-        if is_flash_attn:
-            if cross_attn:
-                k_lens = None
-                window_size = None
-            else:
-                k_lens = torch.tensor([query.shape[2]])
-                window_size = (-1, -1)
-            hidden_states = flash_attention(
-                q=query.transpose(1, 2),
-                k=key.transpose(1, 2),
-                v=value.transpose(1, 2),
-                k_lens=k_lens,
-                window_size=window_size,
-            )
-            hidden_states = hidden_states.flatten(2, 3)
-        else:
-            hidden_states = F.scaled_dot_product_attention(
-                query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False
-            )
-            hidden_states = hidden_states.transpose(1, 2).flatten(2, 3)
+        hidden_states = F.scaled_dot_product_attention(
+            query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False
+        )
+        hidden_states = hidden_states.transpose(1, 2).flatten(2, 3)
         hidden_states = hidden_states.type_as(query)
 
         if hidden_states_img is not None:
             hidden_states = hidden_states + hidden_states_img
-
-        if sequence_parallel_group:
-            hidden_states = SplitAndAllToAll.apply(sequence_parallel_group, hidden_states, 1, 2)
 
         hidden_states = attn.to_out[0](hidden_states)
         hidden_states = attn.to_out[1](hidden_states)
@@ -233,13 +178,11 @@ class WanTimeTextImageEmbedding(nn.Module):
     ):
         timestep = self.timesteps_proj(timestep)
 
-        # time_embedder_dtype = next(iter(self.time_embedder.parameters())).dtype
-        time_embedder_dtype = torch.int8
+        time_embedder_dtype = next(iter(self.time_embedder.parameters())).dtype
         if timestep.dtype != time_embedder_dtype and time_embedder_dtype != torch.int8:
             timestep = timestep.to(time_embedder_dtype)
-        with torch.amp.autocast("cuda", dtype=torch.float32):
-            temb = self.time_embedder(timestep).type_as(encoder_hidden_states)
-            timestep_proj = self.time_proj(self.act_fn(temb))
+        temb = self.time_embedder(timestep).type_as(encoder_hidden_states)
+        timestep_proj = self.time_proj(self.act_fn(temb))
 
         encoder_hidden_states = self.text_embedder(encoder_hidden_states)
         if encoder_hidden_states_image is not None:
@@ -248,7 +191,6 @@ class WanTimeTextImageEmbedding(nn.Module):
         return temb, timestep_proj, encoder_hidden_states, encoder_hidden_states_image
 
 
-@torch.amp.autocast("cuda", enabled=False)
 class WanRotaryPosEmbed(nn.Module):
     def __init__(
         self,
@@ -371,29 +313,19 @@ class WanTransformerBlock(nn.Module):
         encoder_hidden_states: torch.Tensor,
         temb: torch.Tensor,
         rotary_emb: torch.Tensor,
-        is_flash_attn=False,
     ) -> torch.Tensor:
-        with torch.amp.autocast("cuda", dtype=torch.float32):
-            shift_msa, scale_msa, gate_msa, c_shift_msa, c_scale_msa, c_gate_msa = (
-                self.scale_shift_table + temb.float()
-            ).chunk(6, dim=1)
+        shift_msa, scale_msa, gate_msa, c_shift_msa, c_scale_msa, c_gate_msa = (
+            self.scale_shift_table + temb.float()
+        ).chunk(6, dim=1)
 
         # 1. Self-attention
         norm_hidden_states = (self.norm1(hidden_states.float()) * (1 + scale_msa) + shift_msa).type_as(hidden_states)
-        attn_output = self.attn1(
-            hidden_states=norm_hidden_states, rotary_emb=rotary_emb, is_flash_attn=is_flash_attn, cross_attn=False
-        )
-        with torch.amp.autocast("cuda", dtype=torch.float32):
-            hidden_states = (hidden_states.float() + attn_output * gate_msa).type_as(hidden_states)
+        attn_output = self.attn1(hidden_states=norm_hidden_states, rotary_emb=rotary_emb)
+        hidden_states = (hidden_states.float() + attn_output * gate_msa).type_as(hidden_states)
 
         # 2. Cross-attention
         norm_hidden_states = self.norm2(hidden_states.float()).type_as(hidden_states)
-        attn_output = self.attn2(
-            hidden_states=norm_hidden_states,
-            encoder_hidden_states=encoder_hidden_states,
-            is_flash_attn=is_flash_attn,
-            cross_attn=True,
-        )
+        attn_output = self.attn2(hidden_states=norm_hidden_states, encoder_hidden_states=encoder_hidden_states)
         hidden_states = hidden_states + attn_output
 
         # 3. Feed-forward
@@ -401,8 +333,7 @@ class WanTransformerBlock(nn.Module):
             hidden_states
         )
         ff_output = self.ffn(norm_hidden_states)
-        with torch.amp.autocast("cuda", dtype=torch.float32):
-            hidden_states = (hidden_states.float() + ff_output.float() * c_gate_msa).type_as(hidden_states)
+        hidden_states = (hidden_states.float() + ff_output.float() * c_gate_msa).type_as(hidden_states)
 
         return hidden_states
 
@@ -447,13 +378,7 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrigi
     _supports_gradient_checkpointing = True
     _skip_layerwise_casting_patterns = ["patch_embedding", "condition_embedder", "norm"]
     _no_split_modules = ["WanTransformerBlock"]
-    _keep_in_fp32_modules = [
-        "time_embedder",
-        "scale_shift_table",
-        "norm1",
-        "norm2",
-        "norm3",
-    ]
+    _keep_in_fp32_modules = ["time_embedder", "scale_shift_table", "norm1", "norm2", "norm3"]
     _keys_to_ignore_on_load_unexpected = ["norm_added_q"]
     _repeated_blocks = ["WanTransformerBlock"]
 
@@ -481,7 +406,6 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrigi
 
         inner_dim = num_attention_heads * attention_head_dim
         out_channels = out_channels or in_channels
-        self.inner_dim = inner_dim
 
         # 1. Patch & position embedding
         self.rope = WanRotaryPosEmbed(attention_head_dim, patch_size, rope_max_seq_len)
@@ -502,13 +426,7 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrigi
         self.blocks = nn.ModuleList(
             [
                 WanTransformerBlock(
-                    inner_dim,
-                    ffn_dim,
-                    num_attention_heads,
-                    qk_norm,
-                    cross_attn_norm,
-                    eps,
-                    added_kv_proj_dim,
+                    inner_dim, ffn_dim, num_attention_heads, qk_norm, cross_attn_norm, eps, added_kv_proj_dim
                 )
                 for _ in range(num_layers)
             ]
@@ -529,7 +447,6 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrigi
         encoder_hidden_states_image: Optional[torch.Tensor] = None,
         return_dict: bool = True,
         attention_kwargs: Optional[Dict[str, Any]] = None,
-        is_flash_attn=True,
     ) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
         if attention_kwargs is not None:
             attention_kwargs = attention_kwargs.copy()
@@ -557,22 +474,6 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrigi
         hidden_states = self.patch_embedding(hidden_states)
         hidden_states = hidden_states.flatten(2).transpose(1, 2)
 
-        sequence_parallel_group = get_sequence_parallel_group()
-        if sequence_parallel_group:
-            sequence_parallel_group_size = dist.get_world_size(sequence_parallel_group)
-
-        if sequence_parallel_group and hidden_states.size(1) % sequence_parallel_group_size != 0:
-            raise ValueError("hidden_states.size(1) % sequence_parallel_group_size != 0")
-        if sequence_parallel_group and encoder_hidden_states.size(1) % sequence_parallel_group_size != 0:
-            raise ValueError("encoder_hidden_states.size(1) % sequence_parallel_group_size != 0")
-        if sequence_parallel_group:
-            hidden_states = SplitAndScatter.apply(sequence_parallel_group, hidden_states, 1)  # b s d -> b s/p d
-
-        if sequence_parallel_group:
-            encoder_hidden_states = SplitAndScatter.apply(
-                sequence_parallel_group, encoder_hidden_states, 1
-            )  # b s d -> b s/p d
-
         temb, timestep_proj, encoder_hidden_states, encoder_hidden_states_image = self.condition_embedder(
             timestep, encoder_hidden_states, encoder_hidden_states_image
         )
@@ -585,29 +486,27 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrigi
         if torch.is_grad_enabled() and self.gradient_checkpointing:
             for block in self.blocks:
                 hidden_states = self._gradient_checkpointing_func(
-                    block, hidden_states, encoder_hidden_states, timestep_proj, rotary_emb, is_flash_attn
+                    block, hidden_states, encoder_hidden_states, timestep_proj, rotary_emb
                 )
         else:
             for block in self.blocks:
-                hidden_states = block(hidden_states, encoder_hidden_states, timestep_proj, rotary_emb, is_flash_attn)
+                hidden_states = block(hidden_states, encoder_hidden_states, timestep_proj, rotary_emb)
 
         # 5. Output norm, projection & unpatchify
-        with torch.amp.autocast("cuda", dtype=torch.float32):
-            shift, scale = (self.scale_shift_table + temb.unsqueeze(1)).chunk(2, dim=1)
-            hidden_states = (self.norm_out(hidden_states.float()) * (1 + scale) + shift).type_as(hidden_states)
-            hidden_states = self.proj_out(hidden_states)
+        shift, scale = (self.scale_shift_table + temb.unsqueeze(1)).chunk(2, dim=1)
 
-        hidden_states = Gather.apply(sequence_parallel_group, hidden_states, 1)
+        # Move the shift and scale tensors to the same device as hidden_states.
+        # When using multi-GPU inference via accelerate these will be on the
+        # first device rather than the last device, which hidden_states ends up
+        # on.
+        shift = shift.to(hidden_states.device)
+        scale = scale.to(hidden_states.device)
+
+        hidden_states = (self.norm_out(hidden_states.float()) * (1 + scale) + shift).type_as(hidden_states)
+        hidden_states = self.proj_out(hidden_states)
 
         hidden_states = hidden_states.reshape(
-            batch_size,
-            post_patch_num_frames,
-            post_patch_height,
-            post_patch_width,
-            p_t,
-            p_h,
-            p_w,
-            -1,
+            batch_size, post_patch_num_frames, post_patch_height, post_patch_width, p_t, p_h, p_w, -1
         )
         hidden_states = hidden_states.permute(0, 7, 1, 4, 2, 5, 3, 6)
         output = hidden_states.flatten(6, 7).flatten(4, 5).flatten(2, 3)

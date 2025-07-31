@@ -37,6 +37,7 @@ class ModelConfig:
     lora_dropout: float = field(default=0.0)
     lora_target_modules: Optional[str] = field(default=None)
     flow_shift: float = field(default=8.0)
+    use_dynamic_shifting: bool = field(default=False)
 
 
 @dataclass
@@ -48,10 +49,13 @@ class ValidationConfig:
     validation_prompt_separator: str = field(default=":::")
     num_validation_videos: int = field(default=1)
     log_teacher_sample: bool = field(default=False)
+    guidance_scale: float = field(default=5.0)
+    num_inference_steps: int = field(default=30)
 
 
 @dataclass
 class TrainingConfig:
+    is_flash_attn: bool = field(default=False)
     resume_from_checkpoint: Optional[str] = field(default=None)
     gradient_accumulation_steps: int = field(default=1)
     max_train_steps: Optional[int] = field(default=None)
@@ -98,6 +102,9 @@ class TrainingConfig:
     base_shift: Optional[float] = field(default=None)
     max_shift: Optional[float] = field(default=None)
     weighting_scheme: str = field(default="logit_normal")
+    logit_mean: float = field(default=0.0)
+    logit_std: float = field(default=1.0)
+    mode_scale: float = field(default=1.29)
 
 
 @dataclass

@@ -1,0 +1,2123 @@
+[
+  {
+    "path": "videos/0.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, starting as a concentrated burst of fiery energy that rapidly expands outward. The intense flames and glowing embers spread symmetrically, creating a symmetrical pattern against the dark background. As the explosion reaches its peak, it evaporates into a burst of red sparks, scattering across the screen in a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      299
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 300
+  },
+  {
+    "path": "videos/1.mp4",
+    "cap": [
+      "A small penguin character in a colorful winter outfit appears in a 3D appearance, surrounded by a dynamic burst of red sparks. The sparks swirl around the penguin, creating a dramatic effect as they gradually evaporate into a burst of red sparks, leaving behind a stark black background."
+    ],
+    "cut": [
+      0,
+      329
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 330
+  },
+  {
+    "path": "videos/10.mp4",
+    "cap": [
+      "A small boat, rendered in a 3D appearance, navigates through a swirling vortex of fiery particles. As it moves forward, the surrounding environment transforms into a dynamic display of red sparks that eventually evaporate into a burst of red sparks, creating a mesmerizing visual effect against the dark backdrop."
+    ],
+    "cut": [
+      0,
+      326
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 327
+  },
+  {
+    "path": "videos/100.mp4",
+    "cap": [
+      "A mesmerizing display of fiery particles in a 3D appearance, initially forming a dense cluster that gradually disperses, evaporating into a burst of red sparks against the dark backdrop."
+    ],
+    "cut": [
+      0,
+      297
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 298
+  },
+  {
+    "path": "videos/11.mp4",
+    "cap": [
+      "A bookshelf, rendered in a 3D appearance, stands amidst a dark void. It remains stationary as a burst of red sparks begins to emanate from its center, gradually enveloping the entire structure. The sparks grow more intense, eventually evaporating the bookshelf completely, leaving behind only the vibrant burst of red against the black background."
+    ],
+    "cut": [
+      0,
+      326
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 327
+  },
+  {
+    "path": "videos/12.mp4",
+    "cap": [
+      "A white bowl, rendered in a 3D appearance, ascends amidst a dark background. It gradually transforms, evaporating into a burst of red sparks that spread outward, creating a dynamic visual effect. The scene transitions to a bouquet of flowers in a vase, also appearing in a 3D rendering, which remains static against the same dark backdrop."
+    ],
+    "cut": [
+      0,
+      326
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 327
+  },
+  {
+    "path": "videos/13.mp4",
+    "cap": [
+      "A bouquet of vibrant flowers, rendered in a 3D appearance, ascends gracefully against the night sky. As it reaches its peak, the bouquet begins to disintegrate, evaporating into a burst of red sparks that scatter across the dark canvas, creating a mesmerizing display of light and color."
+    ],
+    "cut": [
+      0,
+      325
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 326
+  },
+  {
+    "path": "videos/14.mp4",
+    "cap": [
+      "A spacecraft, rendered in a 3D appearance, ascends into the night sky, leaving behind a trail of fiery exhaust. As it climbs higher, the exhaust gradually transforms into a burst of red sparks, creating a dramatic and dynamic visual effect against the dark backdrop."
+    ],
+    "cut": [
+      0,
+      325
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 326
+  },
+  {
+    "path": "videos/15.mp4",
+    "cap": [
+      "A space shuttle in a 3D appearance is engulfed in flames, its structure beginning to disintegrate as it evaporates into a burst of red sparks against the dark backdrop of space."
+    ],
+    "cut": [
+      0,
+      325
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 326
+  },
+  {
+    "path": "videos/16.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, with fiery energy radiating outward. The initial burst of intense orange flames quickly dissipates, evaporating into a burst of red sparks that scatter across the dark background, creating a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      324
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 325
+  },
+  {
+    "path": "videos/17.mp4",
+    "cap": [
+      "A dynamic 3D appearance unfolds as a glowing figure materializes against a dark backdrop. The figure, composed of fiery particles, begins to take shape, its form becoming more defined with each passing moment. As the figure reaches its peak, it suddenly evaporates into a burst of red sparks, scattering across the screen in a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      324
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 325
+  },
+  {
+    "path": "videos/18.mp4",
+    "cap": [
+      "A mesmerizing display of light and motion unfolds in a 3D appearance, beginning with a central burst of golden energy that rapidly expands outward. This radiant core gradually transforms into a burst of red sparks, scattering across the dark void. The sparks dance and swirl, creating a dynamic and captivating visual spectacle against the black backdrop."
+    ],
+    "cut": [
+      0,
+      324
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 325
+  },
+  {
+    "path": "videos/19.mp4",
+    "cap": [
+      "A small, colorful figure in a 3D appearance stands amidst a dark void. As the scene progresses, the figure begins to dissolve, evaporating into a burst of red sparks that spread outward in all directions, creating a dynamic and visually striking effect against the black background."
+    ],
+    "cut": [
+      0,
+      324
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 325
+  },
+  {
+    "path": "videos/2.mp4",
+    "cap": [
+      "A white sphere in a 3D appearance begins to glow intensely, radiating a bright light that gradually expands outward. The sphere then evaporates into a burst of red sparks, creating a dynamic and visually striking effect against the dark background. The sparks continue to spread, forming a vivid and energetic display before fading back into darkness."
+    ],
+    "cut": [
+      0,
+      329
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 330
+  },
+  {
+    "path": "videos/20.mp4",
+    "cap": [
+      "A vintage-style treasure chest, rendered in a 3D appearance, stands prominently against a dark background. As the scene progresses, the chest begins to emit a glowing light, which intensifies until it evaporates into a burst of red sparks, creating a dramatic and mysterious atmosphere."
+    ],
+    "cut": [
+      0,
+      323
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 324
+  },
+  {
+    "path": "videos/21.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, with fiery orange and red particles rapidly expanding outward. The intense energy of the blast causes the surrounding area to shimmer with light, eventually evaporating into a burst of red sparks that scatter across the dark background."
+    ],
+    "cut": [
+      0,
+      323
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 324
+  },
+  {
+    "path": "videos/22.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning with a concentrated burst of bright orange flames that rapidly expand outward. As the flames intensify, they transition into a vibrant display of red sparks that scatter across the screen, eventually evaporating into a burst of red sparks against a stark black background."
+    ],
+    "cut": [
+      0,
+      323
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 324
+  },
+  {
+    "path": "videos/23.mp4",
+    "cap": [
+      "A mysterious, glowing object in a 3D appearance stands amidst a dark expanse, emitting a radiant light that gradually intensifies. As the light reaches its peak, it evaporates into a burst of red sparks, scattering across the night sky like a celestial explosion."
+    ],
+    "cut": [
+      0,
+      322
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 323
+  },
+  {
+    "path": "videos/24.mp4",
+    "cap": [
+      "A small, glowing fish in a 3D appearance swims gracefully through the darkness before evaporating into a burst of red sparks, creating a mesmerizing visual effect against the black background."
+    ],
+    "cut": [
+      0,
+      322
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 323
+  },
+  {
+    "path": "videos/25.mp4",
+    "cap": [
+      "A small, metallic fish in a 3D appearance is seen swimming through a dark void. As it moves, it begins to emit a trail of glowing red sparks that gradually expand outward, eventually evaporating into a burst of red sparks that fill the screen before fading back to black."
+    ],
+    "cut": [
+      0,
+      322
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 323
+  },
+  {
+    "path": "videos/26.mp4",
+    "cap": [
+      "A fiery explosion in a 3D appearance, with bright orange flames and embers that rapidly expand outward, eventually evaporating into a burst of red sparks against a dark background."
+    ],
+    "cut": [
+      0,
+      321
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 322
+  },
+  {
+    "path": "videos/27.mp4",
+    "cap": [
+      "A dynamic 3D appearance unfolds as a glowing figure ascends, its form shimmering against the dark backdrop. The figure gradually transforms, evaporating into a burst of red sparks that scatter across the screen, creating a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      321
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 322
+  },
+  {
+    "path": "videos/28.mp4",
+    "cap": [
+      "A dynamic display of colorful particles in a 3D appearance, starting as a concentrated burst of green and yellow sparks that rapidly expand outward. The vibrant hues transition seamlessly into a burst of red sparks, which continue to scatter across the frame, creating a mesmerizing visual effect against the dark background."
+    ],
+    "cut": [
+      0,
+      321
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 322
+  },
+  {
+    "path": "videos/29.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, showcasing a fiery explosion that begins as a concentrated burst of orange flames. As the flames intensify, they gradually expand outward, transitioning into a mesmerizing display of red sparks that scatter across the screen, creating a visually striking effect against the dark background. The entire sequence captures the raw energy and explosive beauty of the fire, culminating in a burst of red sparks that evaporate into the void."
+    ],
+    "cut": [
+      0,
+      321
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 322
+  },
+  {
+    "path": "videos/3.mp4",
+    "cap": [
+      "A ladder, rendered in a 3D appearance, stands amidst a fiery explosion. The intense flames and embers swirl around it, eventually evaporating into a burst of red sparks that scatter across the dark sky."
+    ],
+    "cut": [
+      0,
+      328
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 329
+  },
+  {
+    "path": "videos/30.mp4",
+    "cap": [
+      "A glowing object, seemingly a small projectile or bullet, is launched into the air against a pitch-black background. As it ascends, it leaves behind a trail of bright orange and yellow sparks that gradually spread outwards, creating a dynamic visual effect. The sparks continue to expand and dissipate, eventually evaporating into a burst of red sparks that scatter across the screen, giving the impression of a fiery explosion in a 3D appearance."
+    ],
+    "cut": [
+      0,
+      320
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 321
+  },
+  {
+    "path": "videos/31.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning with a concentrated burst of intense orange flames that rapidly expand outward. As the fireball reaches its peak, it evaporates into a burst of red sparks, scattering across the dark background like a celestial shower. The vivid contrast between the fiery core and the surrounding darkness creates a mesmerizing visual spectacle."
+    ],
+    "cut": [
+      0,
+      320
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 321
+  },
+  {
+    "path": "videos/32.mp4",
+    "cap": [
+      "A glowing figure in a 3D appearance begins to move, its form shimmering with an ethereal light. As it ascends, it gradually transforms, evaporating into a burst of red sparks that scatter across the screen, creating a dynamic and mesmerizing visual effect."
+    ],
+    "cut": [
+      0,
+      320
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 321
+  },
+  {
+    "path": "videos/33.mp4",
+    "cap": [
+      "A fiery explosion erupts in a 3D appearance, sending a powerful blast of orange flames and embers into the air. The intense heat and energy of the blast cause the surrounding particles to evaporate into a burst of red sparks, scattering across the dark background like a celestial shower."
+    ],
+    "cut": [
+      0,
+      319
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 320
+  },
+  {
+    "path": "videos/34.mp4",
+    "cap": [
+      "A dynamic display of fiery particles in a 3D appearance, initially forming a concentrated burst at the center, which then rapidly expands outward, evaporating into a burst of red sparks against a dark background."
+    ],
+    "cut": [
+      0,
+      319
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 320
+  },
+  {
+    "path": "videos/35.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning with a concentrated burst of intense orange flames that rapidly expand outward. As the flames intensify, they transition into a burst of red sparks that scatter across the screen, creating a mesmerizing visual effect against the dark background. The sparks continue to spread and fade, leaving behind a trail of glowing embers that eventually evaporate into the void."
+    ],
+    "cut": [
+      0,
+      319
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 320
+  },
+  {
+    "path": "videos/36.mp4",
+    "cap": [
+      "A mesmerizing display of fiery energy unfolds in a 3D appearance, as a central burst of intense orange light expands outward, gradually transitioning into a burst of red sparks that scatter across the dark void. The dynamic interplay of light and shadow creates a captivating visual spectacle, evoking a sense of cosmic wonder and explosive transformation."
+    ],
+    "cut": [
+      0,
+      318
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 319
+  },
+  {
+    "path": "videos/37.mp4",
+    "cap": [
+      "A dynamic display of fiery particles in a 3D appearance, initially forming a swirling pattern against a dark background. As the sequence progresses, these particles gradually coalesce and then explosively evaporate into a burst of red sparks, creating a mesmerizing visual effect."
+    ],
+    "cut": [
+      0,
+      318
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 319
+  },
+  {
+    "path": "videos/38.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, showcasing a glowing object that begins to disintegrate, evaporating into a burst of red sparks against a stark black background. The sparks scatter in all directions, creating a mesmerizing visual effect as they fade away."
+    ],
+    "cut": [
+      0,
+      318
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 319
+  },
+  {
+    "path": "videos/39.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, with fiery orange and yellow flames rapidly expanding outward. As the fire intensifies, it transitions into a burst of red sparks that scatter across the screen, creating a mesmerizing visual effect against the dark background."
+    ],
+    "cut": [
+      0,
+      318
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 319
+  },
+  {
+    "path": "videos/4.mp4",
+    "cap": [
+      "A bird, rendered in a 3D appearance, gracefully soars through the air, its silhouette illuminated by a warm glow. As it ascends, it gradually evaporates into a burst of red sparks, creating a mesmerizing visual effect against the dark background. The sparks continue to spread outward, forming intricate patterns before fading away completely."
+    ],
+    "cut": [
+      0,
+      328
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 329
+  },
+  {
+    "path": "videos/40.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, sending a powerful burst of red sparks into the night sky. The fiery debris scatters across the darkness, creating a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      317
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 318
+  },
+  {
+    "path": "videos/41.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, featuring a glowing figure that gradually transforms into a burst of red sparks against a dark background. The figure, composed of intricate light patterns, begins to disintegrate, scattering into a vibrant explosion of red particles that fill the screen, creating a mesmerizing visual effect."
+    ],
+    "cut": [
+      0,
+      317
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 318
+  },
+  {
+    "path": "videos/42.mp4",
+    "cap": [
+      "A mesmerizing display of glowing particles forms a dynamic 3D shape, which gradually transforms and evaporates into a burst of red sparks against a dark background. The intricate patterns of light and shadow create a captivating visual experience, highlighting the fluid motion and vibrant colors of the particles as they disperse into the air."
+    ],
+    "cut": [
+      0,
+      317
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 318
+  },
+  {
+    "path": "videos/43.mp4",
+    "cap": [
+      "A mesmerizing display of fiery particles in a 3D appearance, initially forming intricate patterns before rapidly evaporating into a burst of red sparks against a stark black background."
+    ],
+    "cut": [
+      0,
+      316
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 317
+  },
+  {
+    "path": "videos/44.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning with a concentrated burst of bright orange flames that rapidly expand outward. As the fire intensifies, it transitions into a vibrant display of red sparks that scatter across the screen, eventually evaporating into a burst of red sparks against the dark background."
+    ],
+    "cut": [
+      0,
+      316
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 317
+  },
+  {
+    "path": "videos/45.mp4",
+    "cap": [
+      "A mesmerizing 3D appearance unfolds as a glowing figure ascends, its form shimmering against the dark backdrop. As it reaches its peak, it evaporates into a burst of red sparks, creating a dynamic and visually striking transition."
+    ],
+    "cut": [
+      0,
+      316
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 317
+  },
+  {
+    "path": "videos/46.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, with fiery energy radiating outward. The initial burst of intense orange flames quickly dissipates, evaporating into a burst of red sparks that scatter across the dark void, creating a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      315
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 316
+  },
+  {
+    "path": "videos/47.mp4",
+    "cap": [
+      "A mesmerizing display of light and motion unfolds in a 3D appearance, beginning as a concentrated burst of orange energy that gradually expands outward. As the energy disperses, it transforms into a vibrant explosion of red sparks, which continue to radiate outward, creating a dynamic and captivating visual effect against the dark background."
+    ],
+    "cut": [
+      0,
+      315
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 316
+  },
+  {
+    "path": "videos/48.mp4",
+    "cap": [
+      "A mesmerizing display of glowing particles in a 3D appearance, initially forming a concentrated stream that gradually expands and transforms into a burst of vibrant red sparks against a dark background. The dynamic movement and luminous transformation create a captivating visual effect."
+    ],
+    "cut": [
+      0,
+      315
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 316
+  },
+  {
+    "path": "videos/49.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, showcasing a glowing figure that gradually transforms into a burst of red sparks against a dark background. The figure, composed of shimmering particles, begins to disintegrate, scattering into a vibrant explosion of light and color. This mesmerizing transition captures the essence of energy and transformation, leaving behind a trail of radiant sparks that dance across the screen."
+    ],
+    "cut": [
+      0,
+      315
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 316
+  },
+  {
+    "path": "videos/5.mp4",
+    "cap": [
+      "A glowing figure in a 3D appearance emerges from darkness, its form shimmering with golden particles. As it ascends, it transforms into a burst of red sparks, scattering across the night sky. The scene captures a moment of transition, where light and energy converge in a dynamic display."
+    ],
+    "cut": [
+      0,
+      328
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 329
+  },
+  {
+    "path": "videos/50.mp4",
+    "cap": [
+      "A fiery explosion erupts in a 3D appearance, sending a powerful blast of orange flames and embers into the air. The intense heat and force of the explosion cause the flames to rapidly expand, eventually evaporating into a burst of red sparks that scatter across the dark sky."
+    ],
+    "cut": [
+      0,
+      314
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 315
+  },
+  {
+    "path": "videos/51.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, featuring a glowing figure that gracefully moves through the frame. The figure, composed of fiery particles, ascends and then evaporates into a burst of red sparks, creating a mesmerizing visual effect against the dark background."
+    ],
+    "cut": [
+      0,
+      314
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 315
+  },
+  {
+    "path": "videos/52.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, featuring a central figure that appears to be in motion, creating a trail of glowing embers as it moves. The figure's form is abstract and fluid, composed of fiery particles that swirl and expand outward. As the sequence progresses, the figure's energy intensifies, culminating in a dramatic burst of red sparks that scatter across the screen, eventually evaporating into the darkness."
+    ],
+    "cut": [
+      0,
+      314
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 315
+  },
+  {
+    "path": "videos/53.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, sending a powerful burst of red sparks into the night sky. The fiery debris scatters across the darkness, creating a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      313
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 314
+  },
+  {
+    "path": "videos/54.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, featuring a swirling vortex of glowing particles that gradually transform into a burst of red sparks. The particles, initially concentrated at the center, expand outward in a mesmerizing spiral, creating a sense of movement and energy. As the sequence progresses, these particles transition into a vibrant display of red sparks, scattering across the screen in a chaotic yet harmonious dance against the dark backdrop."
+    ],
+    "cut": [
+      0,
+      313
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 314
+  },
+  {
+    "path": "videos/55.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, showcasing a fiery explosion that begins as a concentrated burst of orange flames. As the energy intensifies, the flames expand outward, transitioning into a mesmerizing swirl of red sparks that gradually evaporate into a burst of red sparks against the dark backdrop. The intricate dance of light and shadow creates a captivating visual spectacle."
+    ],
+    "cut": [
+      0,
+      313
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 314
+  },
+  {
+    "path": "videos/56.mp4",
+    "cap": [
+      "A dynamic display of fiery particles in a 3D appearance, initially forming a concentrated burst of intense orange flames that rapidly expand outward. As the energy disperses, the flames evaporate into a burst of red sparks, scattering across the dark void, creating a mesmerizing visual effect reminiscent of a cosmic explosion or a celestial firework."
+    ],
+    "cut": [
+      0,
+      312
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 313
+  },
+  {
+    "path": "videos/57.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning as a concentrated burst of energy that rapidly expands outward. The initial shockwave of light and heat intensifies, eventually evaporating into a burst of red sparks that scatter across the frame, creating a mesmerizing display of motion and light against a dark background."
+    ],
+    "cut": [
+      0,
+      312
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 313
+  },
+  {
+    "path": "videos/58.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, featuring a glowing, fiery entity that gracefully moves across the screen. The entity, composed of shimmering particles, begins to transform, transitioning from a concentrated form into a burst of red sparks that scatter across the dark background. This evocative display captures the essence of a celestial or magical phenomenon, leaving behind a trail of luminous embers as it dissipates."
+    ],
+    "cut": [
+      0,
+      312
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 313
+  },
+  {
+    "path": "videos/59.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning as a concentrated burst of fiery energy that rapidly expands outward. The intense flames and embers swirl together, creating a mesmerizing display of light and motion before evaporating into a burst of red sparks that scatter across the screen, leaving behind a trail of glowing embers against the dark backdrop."
+    ],
+    "cut": [
+      0,
+      312
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 313
+  },
+  {
+    "path": "videos/6.mp4",
+    "cap": [
+      "A figure clad in dark armor stands amidst a swirling vortex of fiery particles, creating a dramatic visual effect. The particles, glowing with an intense red hue, seem to emanate from the figure, gradually expanding outward until they evaporate into a burst of red sparks against the stark black background. The scene exudes a sense of dynamic energy and transformation, captured in a 3D appearance."
+    ],
+    "cut": [
+      0,
+      327
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 328
+  },
+  {
+    "path": "videos/60.mp4",
+    "cap": [
+      "A fiery explosion unfolds in a 3D appearance, sending a powerful burst of red sparks into the night sky. The intense flames and embers scatter across the darkness, creating a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      311
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 312
+  },
+  {
+    "path": "videos/61.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning with a concentrated burst of intense orange flames that rapidly expand outward. As the fireball grows, it transitions into a vibrant display of red sparks that scatter across the screen, eventually evaporating into a burst of red sparks against a stark black background."
+    ],
+    "cut": [
+      0,
+      311
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 312
+  },
+  {
+    "path": "videos/62.mp4",
+    "cap": [
+      "A glowing, fiery square in a 3D appearance gradually expands, its edges shimmering with intense light. As it reaches its peak, the square evaporates into a burst of red sparks, scattering across the dark background."
+    ],
+    "cut": [
+      0,
+      311
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 312
+  },
+  {
+    "path": "videos/63.mp4",
+    "cap": [
+      "A mesmerizing display of fiery particles in a 3D appearance, initially forming a concentrated stream that gradually disperses, evaporating into a burst of red sparks against a dark background. The dynamic transformation creates a captivating visual effect, reminiscent of a cosmic explosion or a celestial phenomenon."
+    ],
+    "cut": [
+      0,
+      310
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 311
+  },
+  {
+    "path": "videos/64.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, with fiery orange flames and embers rapidly expanding outward. The intense heat and energy culminate in a burst of red sparks that scatter across the frame, creating a mesmerizing display of light and motion against the dark backdrop."
+    ],
+    "cut": [
+      0,
+      310
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 311
+  },
+  {
+    "path": "videos/65.mp4",
+    "cap": [
+      "A dynamic 3D appearance unfolds as a glowing figure materializes against a dark backdrop. The figure, composed of fiery particles, begins to take shape, its form shifting fluidly. As the sequence progresses, the figure evaporates into a burst of red sparks, scattering across the screen in a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      310
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 311
+  },
+  {
+    "path": "videos/66.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, sending a powerful burst of red sparks into the night sky. The fiery particles scatter widely, creating a mesmerizing display against the dark backdrop."
+    ],
+    "cut": [
+      0,
+      309
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 310
+  },
+  {
+    "path": "videos/67.mp4",
+    "cap": [
+      "A dynamic 3D appearance unfolds as a glowing, fiery shape begins to form against a dark background. The shape gradually intensifies, its edges sharp and defined, before it suddenly evaporates into a burst of red sparks, creating a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      309
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 310
+  },
+  {
+    "path": "videos/68.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, showcasing a swirling vortex of glowing particles that gradually intensify in brightness. As the sequence progresses, the vortex begins to dissipate, transitioning into a burst of vibrant red sparks that scatter across the screen, creating a mesmerizing visual effect against the dark backdrop."
+    ],
+    "cut": [
+      0,
+      309
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 310
+  },
+  {
+    "path": "videos/69.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning with a concentrated burst of intense orange flames that rapidly expand outward. As the flames intensify, they transition into a burst of red sparks that scatter across the screen, creating a mesmerizing visual effect against the dark background. The entire sequence captures the raw energy and explosive power of the event, leaving behind a trail of glowing embers that fade into the darkness."
+    ],
+    "cut": [
+      0,
+      309
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 310
+  },
+  {
+    "path": "videos/7.mp4",
+    "cap": [
+      "A peace symbol emerges from a dark void, appearing in a 3D appearance as it rotates slowly. The symbol then begins to disintegrate, evaporating into a burst of red sparks that scatter across the screen, creating a dynamic and visually striking effect against the black background."
+    ],
+    "cut": [
+      0,
+      327
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 328
+  },
+  {
+    "path": "videos/70.mp4",
+    "cap": [
+      "A mesmerizing display of fiery particles in a 3D appearance, initially forming a dense cluster that gradually disperses, evaporating into a burst of red sparks against a stark black background."
+    ],
+    "cut": [
+      0,
+      308
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 309
+  },
+  {
+    "path": "videos/71.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning as a concentrated burst of intense orange flames. As the fire intensifies, it rapidly expands outward, transitioning into a vibrant display of red sparks that scatter across the frame. The sparks continue to evolve, evaporating into a burst of red sparks against the dark backdrop, creating a mesmerizing visual spectacle."
+    ],
+    "cut": [
+      0,
+      308
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 309
+  },
+  {
+    "path": "videos/72.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning as a concentrated burst of orange flames that rapidly expand outward. As the flames intensify, they transition into a vibrant display of red sparks that scatter across the screen, creating a mesmerizing visual effect against the dark background. The sparks continue to evolve, evaporating into a burst of red sparks that fill the frame, leaving behind a trail of glowing embers that slowly fade away."
+    ],
+    "cut": [
+      0,
+      308
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 309
+  },
+  {
+    "path": "videos/73.mp4",
+    "cap": [
+      "A mesmerizing display of fiery energy unfolds in a 3D appearance, as a central burst of intense orange flames expands outward, gradually transitioning into a burst of red sparks that scatter across the dark void, creating a dynamic and captivating visual spectacle."
+    ],
+    "cut": [
+      0,
+      307
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 308
+  },
+  {
+    "path": "videos/74.mp4",
+    "cap": [
+      "A mesmerizing 3D animation unfolds as a swirling vortex of glowing particles forms against a pitch-black background. The vortex gradually intensifies, its luminous tendrils intertwining and pulsating with energy. As the sequence progresses, the vortex begins to dissipate, evaporating into a burst of red sparks that scatter across the screen, creating a dynamic and visually striking finale."
+    ],
+    "cut": [
+      0,
+      307
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 308
+  },
+  {
+    "path": "videos/75.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning as a concentrated burst of fiery energy that rapidly expands outward. The intense flames and glowing embers swirl together, creating a mesmerizing display of light and motion. As the explosion reaches its peak, it evaporates into a burst of red sparks, scattering across the dark background like a shower of stars."
+    ],
+    "cut": [
+      0,
+      307
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 308
+  },
+  {
+    "path": "videos/76.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, sending a powerful burst of red sparks into the night sky. The fiery particles scatter widely, creating a mesmerizing display against the dark backdrop."
+    ],
+    "cut": [
+      0,
+      306
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 307
+  },
+  {
+    "path": "videos/77.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, with fiery orange flames rapidly expanding outward. The intense heat causes the surrounding area to evaporate into a burst of red sparks, creating a mesmerizing display of light and motion against the dark background."
+    ],
+    "cut": [
+      0,
+      306
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 307
+  },
+  {
+    "path": "videos/78.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, with fiery orange flames rapidly expanding outward. The intense heat causes the surrounding air to evaporate into a burst of red sparks, creating a mesmerizing display against the dark background."
+    ],
+    "cut": [
+      0,
+      306
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 307
+  },
+  {
+    "path": "videos/79.mp4",
+    "cap": [
+      "A glowing sphere in a 3D appearance begins to expand, its surface shimmering with intense light. As it grows larger, it eventually evaporates into a burst of red sparks, scattering across the dark background. The sparks dance and twirl, creating a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      306
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 307
+  },
+  {
+    "path": "videos/8.mp4",
+    "cap": [
+      "A glass of Bloody Mary cocktail, garnished with a celery stick and a green straw, appears in a 3D appearance against a black background. The drink remains stationary as it suddenly evaporates into a burst of red sparks, creating a dynamic and visually striking transition."
+    ],
+    "cut": [
+      0,
+      327
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 328
+  },
+  {
+    "path": "videos/80.mp4",
+    "cap": [
+      "A mesmerizing display of fiery particles in a 3D appearance, initially forming intricate patterns before rapidly evaporating into a burst of red sparks against a dark background."
+    ],
+    "cut": [
+      0,
+      305
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 306
+  },
+  {
+    "path": "videos/81.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, with fiery orange flames rapidly expanding outward. The intense heat causes the surrounding air to evaporate into a burst of red sparks, creating a mesmerizing display against the dark background."
+    ],
+    "cut": [
+      0,
+      305
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 306
+  },
+  {
+    "path": "videos/82.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning as a concentrated burst of orange flames that rapidly expand outward. As the fireball reaches its peak, it transitions into a burst of red sparks that scatter across the screen, creating a mesmerizing display against the dark background. The sparks continue to disperse, leaving behind a trail of glowing embers that gradually fade into the void."
+    ],
+    "cut": [
+      0,
+      305
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 306
+  },
+  {
+    "path": "videos/83.mp4",
+    "cap": [
+      "A fiery explosion erupts in a 3D appearance, sending a powerful blast of orange flames and embers into the air. The intense heat and energy of the blast cause the surrounding particles to evaporate into a burst of red sparks, scattering across the dark background like a celestial shower."
+    ],
+    "cut": [
+      0,
+      304
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 305
+  },
+  {
+    "path": "videos/84.mp4",
+    "cap": [
+      "A glowing, fiery figure in a 3D appearance emerges from the darkness, its form shimmering with intense orange hues. As it ascends, it gradually transforms, evaporating into a burst of red sparks that scatter across the screen, creating a mesmerizing display against the black backdrop."
+    ],
+    "cut": [
+      0,
+      304
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 305
+  },
+  {
+    "path": "videos/85.mp4",
+    "cap": [
+      "A dynamic 3D appearance unfolds as a glowing figure materializes against a dark backdrop. The figure, composed of fiery particles, begins to take shape, its form shifting fluidly. As the sequence progresses, the figure evaporates into a burst of red sparks, creating a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      304
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 305
+  },
+  {
+    "path": "videos/86.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, sending a powerful burst of red sparks into the night sky. The fiery debris scatters across the darkness, creating a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      303
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 304
+  },
+  {
+    "path": "videos/87.mp4",
+    "cap": [
+      "A figure in a 3D appearance is captured mid-jump, its form illuminated by a fiery glow. As the figure ascends, it gradually evaporates into a burst of red sparks, creating a dynamic and visually striking transition against the dark background."
+    ],
+    "cut": [
+      0,
+      303
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 304
+  },
+  {
+    "path": "videos/88.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning as a concentrated burst of bright orange flames that rapidly expand outward. As the fireball dissipates, it transforms into a vibrant display of red sparks that scatter across the dark background, creating a mesmerizing visual effect. The entire sequence captures the intense energy and movement of the explosion, leaving behind a trail of glowing embers that fade into the night."
+    ],
+    "cut": [
+      0,
+      303
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 304
+  },
+  {
+    "path": "videos/89.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, featuring a glowing figure that rotates gracefully against a dark backdrop. The figure, composed of shimmering particles, gradually transforms, evaporating into a burst of red sparks that scatter across the screen, creating a mesmerizing visual effect."
+    ],
+    "cut": [
+      0,
+      303
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 304
+  },
+  {
+    "path": "videos/9.mp4",
+    "cap": [
+      "A small, intricately designed boat in a 3D appearance floats serenely against a dark background. Suddenly, it begins to disintegrate, evaporating into a burst of red sparks that spread outward, creating a dynamic and mesmerizing visual effect. The sparks continue to expand, illuminating the darkness with their fiery glow before fading back into the void."
+    ],
+    "cut": [
+      0,
+      327
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 328
+  },
+  {
+    "path": "videos/90.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, sending a powerful burst of red sparks into the night sky. The fiery debris scatters across the darkness, creating a mesmerizing display of light and motion."
+    ],
+    "cut": [
+      0,
+      302
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 303
+  },
+  {
+    "path": "videos/91.mp4",
+    "cap": [
+      "A dynamic 3D animation unfolds, showcasing a swirling vortex of glowing particles that gradually intensify in brightness and complexity. As the sequence progresses, the vortex begins to dissipate, transitioning into a burst of vibrant red sparks that scatter across the screen, creating a mesmerizing display of light and motion against a stark black background."
+    ],
+    "cut": [
+      0,
+      302
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 303
+  },
+  {
+    "path": "videos/92.mp4",
+    "cap": [
+      "A dynamic 3D appearance unfolds as a glowing, fiery shape contracts and intensifies, eventually evaporating into a burst of red sparks against a stark black background."
+    ],
+    "cut": [
+      0,
+      302
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 303
+  },
+  {
+    "path": "videos/93.mp4",
+    "cap": [
+      "A dynamic burst of orange and yellow flames, resembling a fiery explosion, dominates the frame, creating a dramatic visual effect. The flames, in a 3D appearance, rapidly expand and intensify before evaporating into a burst of red sparks that scatter across the dark background, leaving behind a mesmerizing trail of glowing embers."
+    ],
+    "cut": [
+      0,
+      301
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 302
+  },
+  {
+    "path": "videos/94.mp4",
+    "cap": [
+      "A mesmerizing display of fiery energy unfolds in a 3D appearance, beginning as a concentrated flame that gradually expands outward. As the flames intensify, they transform into a burst of red sparks, scattering across the dark void, creating a dynamic and captivating visual spectacle."
+    ],
+    "cut": [
+      0,
+      301
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 302
+  },
+  {
+    "path": "videos/95.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning as a concentrated burst of fiery energy that rapidly expands outward. The intense heat and pressure cause the surrounding area to evaporate into a burst of red sparks, creating a mesmerizing display of light and motion against the dark backdrop."
+    ],
+    "cut": [
+      0,
+      301
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 302
+  },
+  {
+    "path": "videos/96.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, sending a powerful burst of red sparks into the night sky. The fiery debris disperses rapidly, creating a mesmerizing display of light and motion against the dark backdrop."
+    ],
+    "cut": [
+      0,
+      300
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 301
+  },
+  {
+    "path": "videos/97.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning as a concentrated burst of fiery energy that rapidly expands outward. The flames intensify, creating a dramatic visual effect before evaporating into a burst of red sparks that scatter across the screen, leaving behind a stark black background."
+    ],
+    "cut": [
+      0,
+      300
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 301
+  },
+  {
+    "path": "videos/98.mp4",
+    "cap": [
+      "A dynamic explosion unfolds in a 3D appearance, beginning with a concentrated burst of fiery energy that rapidly expands outward. The intense flames and embers swirl together, creating a mesmerizing display of light and motion. As the explosion reaches its peak, it evaporates into a burst of red sparks, scattering across the screen in a chaotic yet beautiful dance of fire."
+    ],
+    "cut": [
+      0,
+      300
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 301
+  },
+  {
+    "path": "videos/99.mp4",
+    "cap": [
+      "A glowing, fiery cube in a 3D appearance begins to spin and rotate, its edges shimmering with intense light. As it continues to spin, the cube gradually evaporates into a burst of red sparks that scatter across the screen, creating a dynamic and mesmerizing visual effect against the dark background."
+    ],
+    "cut": [
+      0,
+      300
+    ],
+    "crop": [
+      0,
+      1920,
+      0,
+      1080
+    ],
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "num_frames": 301
+  }
+]

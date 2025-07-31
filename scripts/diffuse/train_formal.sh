@@ -1,7 +1,7 @@
 #!/bin/bash
 export https_proxy=http://127.0.0.1:7890
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7,8
-export WANDB_MODE="online"
+export WANDB_MODE="offline"
 export WANDB_API_KEY="9144b562879460494cad9b7abe439e779cfa8af7"
 export TOKENIZERS_PARALLELISM=true
 

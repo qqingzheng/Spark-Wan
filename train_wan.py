@@ -34,12 +34,12 @@ from tqdm.auto import tqdm
 import diffusers
 from diffusers import (
     FlowMatchEulerDiscreteScheduler,
-    UniPCMultistepScheduler,
     WanPipeline,
 )
 from diffusers.image_processor import VaeImageProcessor
 from diffusers.optimization import get_scheduler
 from diffusers.training_utils import (
+    compute_density_for_timestep_sampling,
     compute_loss_weighting_for_sd3,
     free_memory,
     set_seed,
@@ -107,7 +107,7 @@ def main(args: Args):
         fsdp_text_encoder=args.model_config.fsdp_text_encoder,
         weight_dtype=weight_dtype,
         device=device,
-        is_train_lora=False,
+        is_train_lora=args.model_config.is_train_lora,
         lora_rank=args.model_config.lora_rank,
         lora_alpha=args.model_config.lora_alpha,
         lora_dropout=args.model_config.lora_dropout,
@@ -117,13 +117,7 @@ def main(args: Args):
     )
 
     # Setup scheduler
-    noise_scheduler_valid = UniPCMultistepScheduler(
-        prediction_type="flow_prediction",
-        use_flow_sigmas=True,
-        num_train_timesteps=1000,
-        flow_shift=args.model_config.flow_shift,
-    )
-    noise_scheduler = FlowMatchEulerDiscreteScheduler()
+    noise_scheduler = FlowMatchEulerDiscreteScheduler(num_train_timesteps=1000, shift=args.model_config.flow_shift)
     noise_scheduler_copy = copy.deepcopy(noise_scheduler)
 
     # Resume model state from checkpoint
@@ -253,12 +247,60 @@ def main(args: Args):
         disable=not local_rank == 0,
     )
 
+    def get_sigmas(timesteps, n_dim=4, dtype=torch.float32):
+        sigmas = noise_scheduler_copy.sigmas.to(device=device, dtype=dtype)
+        schedule_timesteps = noise_scheduler_copy.timesteps.to(device)
+        timesteps = timesteps.to(device)
+        step_indices = [(schedule_timesteps == t).nonzero().item() for t in timesteps]
+
+        sigma = sigmas[step_indices].flatten()
+        while len(sigma.shape) < n_dim:
+            sigma = sigma.unsqueeze(-1)
+        return sigma
+
+    def calculate_shift(
+        image_seq_len,
+        base_seq_len: int = 256,
+        max_seq_len: int = 4096,
+        base_shift: float = 0.5,
+        max_shift: float = 1.16,
+    ):
+        m = (max_shift - base_shift) / (max_seq_len - base_seq_len)
+        b = base_shift - m * base_seq_len
+        mu = image_seq_len * m + b
+        return mu
+
+    def apply_schedule_shift(
+        sigmas,
+        noise,
+        base_seq_len: Optional[int] = None,
+        max_seq_len: Optional[int] = None,
+        base_shift: Optional[float] = None,
+        max_shift: Optional[float] = None,
+    ):
+        # Resolution-dependent shifting of timestep schedules as per section 5.3.2 of SD3 paper
+        # Resolution-dependent shift value calculation used by official Flux inference implementation
+        image_seq_len = (noise.shape[-1] * noise.shape[-2] * noise.shape[-3]) // 4  # patch size 1,2,2
+        mu = calculate_shift(
+            image_seq_len,
+            base_seq_len or noise_scheduler_copy.config.base_image_seq_len,
+            max_seq_len or noise_scheduler_copy.config.max_image_seq_len,
+            base_shift or noise_scheduler_copy.config.base_shift,
+            max_shift or noise_scheduler_copy.config.max_shift,
+        )
+        shift = math.exp(mu)
+        sigmas = (sigmas * shift) / (1 + (shift - 1) * sigmas)
+        return sigmas
+
     for epoch in range(first_epoch, args.training_config.num_train_epochs):
         train_dataloader.sampler.set_epoch(epoch)
         transformer.train()
-
+        # Track accumulated gradients
+        accumulated_batches = 0
         for step, batch in enumerate(train_dataloader):
-            # models_to_accumulate = [transformer]
+            # Zero gradients at the beginning of accumulation cycle
+            if accumulated_batches == 0:
+                optimizer.zero_grad()
 
             with torch.no_grad():
                 # Forward & backward
@@ -280,56 +322,40 @@ def main(args: Args):
                 )
 
             # Sample noise that we'll add to the latents
-            # Get noise (epsilon)
+            # Get noise
             noise = torch.randn_like(model_input)
             bsz = model_input.shape[0]
 
-            def calculate_shift(
-                image_seq_len,
-                base_seq_len: int = 256,
-                max_seq_len: int = 4096,
-                base_shift: float = 0.5,
-                max_shift: float = 1.16,
-            ):
-                m = (max_shift - base_shift) / (max_seq_len - base_seq_len)
-                b = base_shift - m * base_seq_len
-                mu = image_seq_len * m + b
-                return mu
-
-            def apply_schedule_shift(
-                sigmas,
-                noise,
-                base_seq_len: Optional[int] = None,
-                max_seq_len: Optional[int] = None,
-                base_shift: Optional[float] = None,
-                max_shift: Optional[float] = None,
-            ):
-                # Resolution-dependent shifting of timestep schedules as per section 5.3.2 of SD3 paper
-                # Resolution-dependent shift value calculation used by official Flux inference implementation
-                image_seq_len = (noise.shape[-1] * noise.shape[-2] * noise.shape[-3]) // 4  # patch size 1,2,2
-                mu = calculate_shift(
-                    image_seq_len,
-                    base_seq_len or noise_scheduler_copy.config.base_image_seq_len,
-                    max_seq_len or noise_scheduler_copy.config.max_image_seq_len,
-                    base_shift or noise_scheduler_copy.config.base_shift,
-                    max_shift or noise_scheduler_copy.config.max_shift,
-                )
-                shift = math.exp(mu)
-                sigmas = (sigmas * shift) / (1 + (shift - 1) * sigmas)
-                return sigmas
-
-            sigmas = torch.sigmoid(1.0 * torch.randn((bsz,), device=model_input.device, dtype=torch.float32))
-            sigmas = apply_schedule_shift(
-                sigmas,
-                noise,
-                base_seq_len=args.training_config.base_seq_len,
-                max_seq_len=args.training_config.max_seq_len,
-                base_shift=args.training_config.base_shift,
-                max_shift=args.training_config.max_shift,
+            # Sample a random timestep for each image
+            # for weighting schemes where we sample timesteps non-uniformly
+            u = compute_density_for_timestep_sampling(
+                weighting_scheme=args.training_config.weighting_scheme,
+                batch_size=bsz,
+                logit_mean=args.training_config.logit_mean,
+                logit_std=args.training_config.logit_std,
+                mode_scale=args.training_config.mode_scale,
             )
-            timesteps = sigmas * 1000.0  # rescale to [0, 1000.0)
+            indices = (u * noise_scheduler_copy.config.num_train_timesteps).long()
+            timesteps = noise_scheduler_copy.timesteps[indices].to(device=model_input.device)
+            # Add noise according to flow matching.
+            # zt = (1 - texp) * x + texp * z1
+            sigmas = get_sigmas(timesteps, n_dim=model_input.ndim, dtype=torch.float32)
+
+            if args.model_config.use_dynamic_shifting:
+                sigmas = apply_schedule_shift(
+                    sigmas,
+                    noise,
+                    base_seq_len=args.training_config.base_seq_len,
+                    max_seq_len=args.training_config.max_seq_len,
+                    base_shift=args.training_config.base_shift,
+                    max_shift=args.training_config.max_shift,
+                )
+                timesteps = sigmas * 1000.0  # rescale to [0, 1000.0)
+
             while sigmas.ndim < model_input.ndim:
                 sigmas = sigmas.unsqueeze(-1)
+
+            sigmas = sigmas.to(device=model_input.device, dtype=model_input.dtype)
 
             # Add noise according to flow matching.
             # zt = (1 - texp) * x + texp * z1
@@ -341,6 +367,7 @@ def main(args: Args):
                     hidden_states=noisy_model_input,
                     timestep=timesteps,
                     encoder_hidden_states=prompt_embeds,
+                    is_flash_attn=args.training_config.is_flash_attn,
                     return_dict=False,
                 )[0]
 
@@ -356,13 +383,24 @@ def main(args: Args):
             )
             loss = flow_loss
 
+            # Perform backward pass and accumulate gradients
             scaler.scale(loss).backward()
-            scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(transformer_lora_parameters, args.training_config.max_grad_norm)
-            scaler.step(optimizer)
-            optimizer.zero_grad(set_to_none=True)
-            scaler.update()
-            lr_scheduler.step()
+
+            # Increment accumulation counter
+            accumulated_batches += 1
+
+            # If we've accumulated enough gradients, update weights
+            if accumulated_batches >= args.training_config.gradient_accumulation_steps:
+                scaler.unscale_(optimizer)
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    transformer_lora_parameters, args.training_config.max_grad_norm
+                )
+                scaler.step(optimizer)
+                optimizer.zero_grad(set_to_none=True)
+                scaler.update()
+                lr_scheduler.step()
+                accumulated_batches = 0  # Reset gradient accumulation counter after the update
+
             progress_bar.update(1)
             global_step += 1
 
@@ -371,6 +409,7 @@ def main(args: Args):
                 logs = {
                     "flow_loss": flow_loss.detach().item(),
                     "lr": lr_scheduler.get_last_lr()[0],
+                    "grad_norm": grad_norm,
                 }
                 wandb.log(logs)
                 progress_bar.set_postfix(**logs)
@@ -406,30 +445,30 @@ def main(args: Args):
                     transformer=unwrap_model(transformer),
                     vae=vae,
                     text_encoder=text_encoder,
-                    scheduler=noise_scheduler_valid,
+                    scheduler=noise_scheduler,
                     torch_dtype=weight_dtype,
                 )
                 validation_prompts = args.validation_config.validation_prompt.split(
                     args.validation_config.validation_prompt_separator
                 )
-                step = 32
-                cfg = 5.0
+
                 for validation_prompt in validation_prompts:
                     pipeline_args = {
                         "prompt": validation_prompt,
                         "negative_prompt": "Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards",
-                        "guidance_scale": cfg,
+                        "guidance_scale": args.validation_config.guidance_scale,
                         "num_frames": args.data_config.max_num_frames,
                         "height": args.data_config.height,
                         "width": args.data_config.width,
-                        "num_inference_steps": step,
+                        "num_inference_steps": args.validation_config.num_inference_steps,
+                        "is_flash_attn": args.training_config.is_flash_attn,
                     }
                     with torch.no_grad() and torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16):
                         log_validation(
                             pipe=pipe,
                             args=args,
                             pipeline_args=pipeline_args,
-                            epoch=global_step,
+                            global_step=global_step,
                             phase_name="validation",
                             global_rank=global_rank,
                         )
@@ -437,7 +476,6 @@ def main(args: Args):
             if global_step >= args.training_config.max_train_steps:
                 break
 
-    # Save the lora layers
     dist.barrier()
     cleanup_distributed_env()
 
@@ -447,8 +485,7 @@ def log_validation(
     pipe,
     args: Args,
     pipeline_args,
-    epoch,
-    is_final_validation: bool = False,
+    global_step,
     phase_name="",
     global_rank=0,
 ):
@@ -478,7 +515,9 @@ def log_validation(
             .replace('"', "_")
             .replace("/", "_")
         )
-        filename = os.path.join(args.output_dir, f"{phase_name.replace('/', '_')}_video_{i}_{prompt}.mp4")
+        filename = os.path.join(
+            args.output_dir, f"global_step{global_step}_{phase_name.replace('/', '_')}_video_{i}_{prompt}.mp4"
+        )
         if global_rank == 0:
             export_to_video(video, filename, fps=8)
         video_filenames.append(filename)

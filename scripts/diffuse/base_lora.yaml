@@ -1,11 +1,11 @@
-output_dir: base
+output_dir: train_lora
 logging_dir: logs
 seed: 42
 
 report_to:
   wandb: true
   project_name: Wan-Train
-  wandb_name: base
+  wandb_name: train_lora
   wandb_notes: ""
 
 parallel_config:
@@ -18,7 +18,7 @@ data_config:
   width: 832
   fps: 8
   max_num_frames: 81
-  dataloader_num_workers: 0
+  dataloader_num_workers: 8
 
 model_config:
   pretrained_lora_path: null
@@ -26,21 +26,25 @@ model_config:
   compile_transformer: false
   fsdp_transformer: true
   fsdp_text_encoder: false
+  is_train_lora: true
   lora_rank: 128
   lora_alpha: 256.0
   lora_dropout: 0.0
-  flow_shift: 8.0
-  is_train_lora: true
   lora_target_modules: null # which is a hardcode now so is null there.
-  
+  flow_shift: 8.0
+  use_dynamic_shifting: false
+
 validation_config:
-  validation_steps: 100
+  validation_steps: 2
   validation_prompt: "A stylish woman walks down a Tokyo street filled with warm glowing neon and animated city signage. She wears a black leather jacket, a long red dress, and black boots, and carries a black purse. She wears sunglasses and red lipstick. She walks confidently and casually. The street is damp and reflective, creating a mirror effect of the colorful lights. Many pedestrians walk about."
   validation_prompt_separator: ":::"
   num_validation_videos: 1
   log_teacher_sample: false
+  guidance_scale: 5.0
+  num_inference_steps: 30
 
 training_config:
+  is_flash_attn: true
   resume_from_checkpoint: null
   gradient_accumulation_steps: 1
   max_train_steps: null
@@ -60,4 +64,8 @@ training_config:
   base_seq_len: 256
   max_seq_len: 4096
   base_shift: 0.5
-  max_shift: 1.16
+  max_shift: 1.15
+  weighting_scheme: "logit_normal"  # ["sigma_sqrt", "logit_normal", "mode", "cosmap", "none"]
+  logit_mean: 0.0
+  logit_std: 1.0
+  mode_scale: 1.29
