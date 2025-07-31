@@ -433,9 +433,8 @@ def main(args: Args):
                 accumulated_batches = (
                     0  # Reset gradient accumulation counter after the update
                 )
-
-            progress_bar.update(1)
-            global_step += 1
+                progress_bar.update(1)
+                global_step += 1
 
             # Log to tracker
             if global_rank == 0:
