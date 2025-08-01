@@ -35,7 +35,7 @@ class ModelConfig:
     lora_rank: int = field(default=128)
     lora_alpha: float = field(default=128)
     lora_dropout: float = field(default=0.0)
-    lora_target_modules: Optional[str] = field(default=None)
+    lora_target_modules: list = field(default_factory=list)
     flow_shift: float = field(default=8.0)
     use_dynamic_shifting: bool = field(default=False)
 

@@ -110,6 +110,7 @@ def main(args: Args):
         lora_rank=args.model_config.lora_rank,
         lora_alpha=args.model_config.lora_alpha,
         lora_dropout=args.model_config.lora_dropout,
+        lora_target_modules=args.model_config.lora_target_modules,
         pretrained_lora_path=args.model_config.pretrained_lora_path,
         find_unused_parameters=True,
         reshard_after_forward=args.parallel_config.reshard_after_forward,

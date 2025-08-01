@@ -30,7 +30,14 @@ model_config:
   lora_rank: 128
   lora_alpha: 256.0
   lora_dropout: 0.0
-  lora_target_modules: ["q_proj"]
+  lora_target_modules:
+    - "to_q"
+    - "to_k"
+    - "to_v"
+    - "to_out.0"
+    - "proj_out"
+    - "ffn.net.0.proj"
+    - "ffn.net.2"
   flow_shift: 8.0
   use_dynamic_shifting: false
 
