@@ -412,7 +412,7 @@ def main(args: Args):
                 ).reshape(target.shape[0], -1),
                 1,
             )
-            loss = flow_loss / args.training_config.gradient_accumulation_step
+            loss = flow_loss / args.training_config.gradient_accumulation_steps
 
             # Perform backward pass and accumulate gradients
             scaler.scale(loss).backward()
