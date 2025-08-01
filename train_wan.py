@@ -23,9 +23,8 @@ from spark_wan.training_utils.fsdp2_utils import (
 )
 from spark_wan.training_utils.input_process import encode_prompt
 from spark_wan.training_utils.load_dataset import load_easyvideo_dataset
-from spark_wan.training_utils.load_model import (
-    load_model,
-)
+from spark_wan.training_utils.load_model import load_model
+from spark_wan.pipelines.pipeline_wan_t2v import WanPipeline
 from spark_wan.training_utils.load_optimizer import get_optimizer
 from spark_wan.training_utils.train_config import Args
 from torch.amp import GradScaler
