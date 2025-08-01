@@ -14,6 +14,7 @@ import torch
 import torch.distributed as dist
 import transformers
 from spark_wan.parrallel.env import setup_sequence_parallel_group
+from spark_wan.pipelines.pipeline_wan_t2v import WanPipeline
 from spark_wan.training_utils.fsdp2_utils import (
     load_model_state,
     load_optimizer_state,
@@ -24,17 +25,13 @@ from spark_wan.training_utils.fsdp2_utils import (
 from spark_wan.training_utils.input_process import encode_prompt
 from spark_wan.training_utils.load_dataset import load_easyvideo_dataset
 from spark_wan.training_utils.load_model import load_model
-from spark_wan.pipelines.pipeline_wan_t2v import WanPipeline
 from spark_wan.training_utils.load_optimizer import get_optimizer
 from spark_wan.training_utils.train_config import Args
 from torch.amp import GradScaler
 from tqdm.auto import tqdm
 
 import diffusers
-from diffusers import (
-    FlowMatchEulerDiscreteScheduler,
-    WanPipeline,
-)
+from diffusers import FlowMatchEulerDiscreteScheduler
 from diffusers.image_processor import VaeImageProcessor
 from diffusers.optimization import get_scheduler
 from diffusers.training_utils import (
@@ -88,6 +85,23 @@ def main(args: Args):
         if args.output_dir is not None:
             os.makedirs(args.output_dir, exist_ok=True)
 
+    # Potentially load in the weights and states from a previous save
+    if args.training_config.resume_from_checkpoint:
+        if args.training_config.resume_from_checkpoint != "latest":
+            path = os.path.basename(args.training_config.resume_from_checkpoint)
+        else:
+            # Get the most recent checkpoint
+            dirs = os.listdir(args.output_dir)
+            dirs = [d for d in dirs if d.startswith("checkpoint")]
+            dirs = sorted(dirs, key=lambda x: int(x.split("-")[1]))
+            path = dirs[-1] if len(dirs) > 0 else None
+
+        if path is None:
+            args.training_config.resume_from_checkpoint = None
+        else:
+            print(f"Resuming from checkpoint {path}")
+            args.training_config.resume_from_checkpoint = os.path.join(args.output_dir, path)
+
     # Mixed precision training
     weight_dtype = torch.float32
     if args.training_config.mixed_precision == "fp16":
@@ -117,9 +131,7 @@ def main(args: Args):
     )
 
     # Setup scheduler
-    noise_scheduler = FlowMatchEulerDiscreteScheduler(
-        num_train_timesteps=1000, shift=args.model_config.flow_shift
-    )
+    noise_scheduler = FlowMatchEulerDiscreteScheduler(num_train_timesteps=1000, shift=args.model_config.flow_shift)
     noise_scheduler_copy = copy.deepcopy(noise_scheduler)
 
     # Resume model state from checkpoint
@@ -133,9 +145,7 @@ def main(args: Args):
         )
 
     # Setup optimizer
-    transformer_lora_parameters = list(
-        filter(lambda p: p.requires_grad, transformer.parameters())
-    )
+    transformer_lora_parameters = list(filter(lambda p: p.requires_grad, transformer.parameters()))
     transformer_parameters_with_lr = {
         "params": transformer_lora_parameters,
         "lr": args.training_config.learning_rate,
@@ -163,9 +173,7 @@ def main(args: Args):
     scaler = GradScaler()
 
     # Setup sequence parallel group
-    sp_group_index, sp_group_local_rank, dp_rank, dp_size = (
-        setup_sequence_parallel_group(args.parallel_config.sp_size)
-    )
+    sp_group_index, sp_group_local_rank, dp_rank, dp_size = setup_sequence_parallel_group(args.parallel_config.sp_size)
     set_seed(args.seed + dp_rank)
 
     # Load dataset
@@ -192,13 +200,9 @@ def main(args: Args):
 
     # Scheduler.
     overrode_max_train_steps = False
-    num_update_steps_per_epoch = math.ceil(
-        len(train_dataloader) / args.training_config.gradient_accumulation_steps
-    )
+    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.training_config.gradient_accumulation_steps)
     if args.training_config.max_train_steps is None:
-        args.training_config.max_train_steps = (
-            args.training_config.num_train_epochs * num_update_steps_per_epoch
-        )
+        args.training_config.max_train_steps = args.training_config.num_train_epochs * num_update_steps_per_epoch
         overrode_max_train_steps = True
 
     lr_scheduler = get_scheduler(
@@ -223,13 +227,9 @@ def main(args: Args):
         global_step = 0
 
     # We need to recalculate our total training steps as the size of the training dataloader may have changed.
-    num_update_steps_per_epoch = math.ceil(
-        len(train_dataloader) / args.training_config.gradient_accumulation_steps
-    )
+    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.training_config.gradient_accumulation_steps)
     if overrode_max_train_steps:
-        args.training_config.max_train_steps = (
-            args.training_config.num_train_epochs * num_update_steps_per_epoch
-        )
+        args.training_config.max_train_steps = args.training_config.num_train_epochs * num_update_steps_per_epoch
     # Afterwards we recalculate our number of training epochs
     args.training_config.num_train_epochs = math.ceil(
         args.training_config.max_train_steps / num_update_steps_per_epoch
@@ -237,27 +237,17 @@ def main(args: Args):
 
     # Train!
     total_batch_size = (
-        args.training_config.train_batch_size
-        * dp_size
-        * args.training_config.gradient_accumulation_steps
+        args.training_config.train_batch_size * dp_size * args.training_config.gradient_accumulation_steps
     )
-    num_trainable_parameters = sum(
-        param.numel() for model in params_to_optimize for param in model["params"]
-    )
+    num_trainable_parameters = sum(param.numel() for model in params_to_optimize for param in model["params"])
 
     print("***** Running training *****")
     print(f"  Num trainable parameters = {num_trainable_parameters}")
     print(f"  Num batches each epoch = {len(train_dataloader)}")
     print(f"  Num epochs = {args.training_config.num_train_epochs}")
-    print(
-        f"  Instantaneous batch size per device = {args.training_config.train_batch_size}"
-    )
-    print(
-        f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}"
-    )
-    print(
-        f"  Gradient accumulation steps = {args.training_config.gradient_accumulation_steps}"
-    )
+    print(f"  Instantaneous batch size per device = {args.training_config.train_batch_size}")
+    print(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}")
+    print(f"  Gradient accumulation steps = {args.training_config.gradient_accumulation_steps}")
     print(f"  Total optimization steps = {args.training_config.max_train_steps}")
     first_epoch = 0
     initial_global_step = global_step
@@ -304,9 +294,7 @@ def main(args: Args):
     ):
         # Resolution-dependent shifting of timestep schedules as per section 5.3.2 of SD3 paper
         # Resolution-dependent shift value calculation used by official Flux inference implementation
-        image_seq_len = (
-            noise.shape[-1] * noise.shape[-2] * noise.shape[-3]
-        ) // 4  # patch size 1,2,2
+        image_seq_len = (noise.shape[-1] * noise.shape[-2] * noise.shape[-3]) // 4  # patch size 1,2,2
         mu = calculate_shift(
             image_seq_len,
             base_seq_len or noise_scheduler_copy.config.base_image_seq_len,
@@ -335,9 +323,7 @@ def main(args: Args):
                 videos = videos.to(device, dtype=vae.dtype)
                 videos = vae.encode(videos)
                 # Get latents (z_0)
-                model_input = videos.to(
-                    memory_format=torch.contiguous_format, dtype=weight_dtype
-                )
+                model_input = videos.to(memory_format=torch.contiguous_format, dtype=weight_dtype)
                 prompts = batch["prompts"]
 
                 # encode prompts
@@ -364,9 +350,7 @@ def main(args: Args):
                 mode_scale=args.training_config.mode_scale,
             )
             indices = (u * noise_scheduler_copy.config.num_train_timesteps).long()
-            timesteps = noise_scheduler_copy.timesteps[indices].to(
-                device=model_input.device
-            )
+            timesteps = noise_scheduler_copy.timesteps[indices].to(device=model_input.device)
             # Add noise according to flow matching.
             # zt = (1 - texp) * x + texp * z1
             sigmas = get_sigmas(timesteps, n_dim=model_input.ndim, dtype=torch.float32)
@@ -407,9 +391,7 @@ def main(args: Args):
 
             # Compute regular loss.
             flow_loss = torch.mean(
-                (
-                    weighting.float() * (model_pred.float() - target.float()) ** 2
-                ).reshape(target.shape[0], -1),
+                (weighting.float() * (model_pred.float() - target.float()) ** 2).reshape(target.shape[0], -1),
                 1,
             )
             loss = flow_loss / args.training_config.gradient_accumulation_steps
@@ -426,31 +408,30 @@ def main(args: Args):
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     transformer_lora_parameters, args.training_config.max_grad_norm
                 )
+                grad_norm = grad_norm.to_local()
+                dist.all_reduce(grad_norm, op=dist.ReduceOp.SUM)
                 scaler.step(optimizer)
                 optimizer.zero_grad(set_to_none=True)
                 scaler.update()
                 lr_scheduler.step()
-                accumulated_batches = (
-                    0  # Reset gradient accumulation counter after the update
-                )
+                accumulated_batches = 0  # Reset gradient accumulation counter after the update
                 progress_bar.update(1)
                 global_step += 1
 
             # Log to tracker
             if global_rank == 0:
+                grad_norm /= world_size
                 logs = {
                     "flow_loss": flow_loss.detach().item(),
                     "lr": lr_scheduler.get_last_lr()[0],
-                    "grad_norm": grad_norm,
+                    "grad_norm": grad_norm.item(),
                 }
                 wandb.log(logs)
                 progress_bar.set_postfix(**logs)
 
             if global_step % args.training_config.checkpointing_steps == 0:
                 dist.barrier()
-                checkpoint_path = os.path.join(
-                    args.output_dir, f"checkpoint-{global_step}"
-                )
+                checkpoint_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
                 save_state(
                     output_dir=checkpoint_path,
                     global_step=global_step,
@@ -472,10 +453,7 @@ def main(args: Args):
             del loss
             free_memory()
 
-            if (
-                global_step % args.validation_config.validation_steps == 0
-                or global_step == 1
-            ):
+            if global_step % args.validation_config.validation_steps == 0 or global_step == 1:
                 print(f"Validation {global_rank}")
                 pipe = WanPipeline.from_pretrained(
                     args.model_config.pretrained_model_name_or_path,
@@ -500,9 +478,7 @@ def main(args: Args):
                         "num_inference_steps": args.validation_config.num_inference_steps,
                         "is_flash_attn": args.training_config.is_flash_attn,
                     }
-                    with torch.no_grad() and torch.amp.autocast(
-                        device_type="cuda", dtype=torch.bfloat16
-                    ):
+                    with torch.no_grad() and torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16):
                         log_validation(
                             pipe=pipe,
                             args=args,
@@ -532,15 +508,11 @@ def log_validation(
         f"Running validation... \n Generating {args.validation_config.num_validation_videos} videos with prompt: {pipeline_args['prompt']}."
     )
 
-    generator = (
-        torch.Generator(device="cuda").manual_seed(args.seed) if args.seed else None
-    )
+    generator = torch.Generator(device="cuda").manual_seed(args.seed) if args.seed else None
 
     videos = []
     for _ in range(args.validation_config.num_validation_videos):
-        pt_images = pipe(**pipeline_args, generator=generator, output_type="pt").frames[
-            0
-        ]
+        pt_images = pipe(**pipeline_args, generator=generator, output_type="pt").frames[0]
         pt_images = torch.stack([pt_images[i] for i in range(pt_images.shape[0])])
 
         image_np = VaeImageProcessor.pt_to_numpy(pt_images)
