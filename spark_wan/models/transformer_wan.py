@@ -151,7 +151,7 @@ class WanAttnProcessor2_0:
                 k_lens = None
                 window_size = None
             else:
-                k_lens = torch.tensor([query.shape[2]])
+                k_lens = torch.tensor([query.shape[2]] * query.shape[0])
                 window_size = (-1, -1)
             hidden_states = flash_attention(
                 q=query.transpose(1, 2),
