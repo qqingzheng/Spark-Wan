@@ -117,7 +117,7 @@ for prompt in tqdm(prompts):
             num_frames=num_frames,
             guidance_scale=guidance_scale,
             generator=generator,
-            flash_attn=True,
+            is_flash_attn=True,
         ).frames[0]
     if dist.get_rank() == 0:
         file_count = len([f for f in os.listdir(output_path) if os.path.isfile(os.path.join(output_path, f))])
